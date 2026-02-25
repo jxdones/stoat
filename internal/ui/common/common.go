@@ -3,8 +3,8 @@ package common
 const (
 	minDimension              = 1
 	boxHorizontalFrameColumns = 4
-
-	paneVerticalBorderRows = 2
+	boxContentInsetColumns    = 2
+	paneVerticalBorderRows    = 2
 )
 
 // ClampMin enforces a lower bound: it returns value if value >= min, otherwise min.
@@ -27,4 +27,11 @@ func BoxInnerWidth(outerWidth int) int {
 // The "-2" removes top and bottom borders.
 func PaneInnerHeight(outerHeight int) int {
 	return ClampMin(outerHeight-paneVerticalBorderRows, minDimension)
+}
+
+// BoxContentWidth converts an outer box width to plain text content width.
+// It subtracts border+padding via BoxInnerWidth, then another 2 columns used
+// by framed box content alignment in this TUI.
+func BoxContentWidth(outerWidth int) int {
+	return ClampMin(BoxInnerWidth(outerWidth)-boxContentInsetColumns, minDimension)
 }

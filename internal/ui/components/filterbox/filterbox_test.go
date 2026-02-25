@@ -58,18 +58,18 @@ func TestValue_SetValue(t *testing.T) {
 		setValues []string
 		wantValue string
 	}{
-		{ 
-			name: "initial_empty",
+		{
+			name:      "initial_empty",
 			setValues: nil,
 			wantValue: "",
 		},
 		{
-			name: "set_filter_text",
+			name:      "set_filter_text",
 			setValues: []string{"NLD"},
 			wantValue: "NLD",
 		},
 		{
-			name: "set_empty_clears",
+			name:      "set_empty_clears",
 			setValues: []string{"Dutch", ""},
 			wantValue: "",
 		},
@@ -141,14 +141,14 @@ func TestView(t *testing.T) {
 		setValue     string
 		wantContains string
 	}{
-		{ 
-			name: "empty_shows_prompt_or_placeholder",
-			setValue: "",
+		{
+			name:         "empty_shows_prompt_or_placeholder",
+			setValue:     "",
 			wantContains: "Filter:",
 		},
 		{
-			name: "with_value_shows_content",
-			setValue: "NLD",
+			name:         "with_value_shows_content",
+			setValue:     "NLD",
 			wantContains: "NLD",
 		},
 	}
@@ -184,8 +184,8 @@ func TestHelpBindings(t *testing.T) {
 		wantHelp string
 	}{
 		{
-			name: "apply_filter_binding",
-			wantKey: "enter",
+			name:     "apply_filter_binding",
+			wantKey:  "enter",
 			wantHelp: "apply filter",
 		},
 	}
