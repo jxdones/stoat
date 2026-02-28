@@ -1,36 +1,37 @@
 package theme
 
 import (
+	"image/color"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 )
 
 // Theme defines a set of colors for the UI.
 type Theme struct {
-	Border        lipgloss.Color
-	BorderFocused lipgloss.Color
+	Border        color.Color
+	BorderFocused color.Color
 
-	DividerBorder lipgloss.Color
-	OverlayBorder lipgloss.Color
-	OverlayFooter lipgloss.Color
+	DividerBorder color.Color
+	OverlayBorder color.Color
+	OverlayFooter color.Color
 
-	TextMuted   lipgloss.Color
-	TextPrimary lipgloss.Color
-	TextAccent  lipgloss.Color
-	TextWarning lipgloss.Color
-	TextError   lipgloss.Color
-	TextHeader  lipgloss.Color
+	TextMuted   color.Color
+	TextPrimary color.Color
+	TextAccent  color.Color
+	TextWarning color.Color
+	TextError   color.Color
+	TextHeader  color.Color
 
-	TableHeader lipgloss.Color
+	TableHeader color.Color
 
-	TabsPrefix     lipgloss.Color
-	TabsText       lipgloss.Color
-	TabsActiveText lipgloss.Color
-	TabsActiveBg   lipgloss.Color
+	TabsPrefix     color.Color
+	TabsText       color.Color
+	TabsActiveText color.Color
+	TabsActiveBg   color.Color
 
-	SidebarTitle    lipgloss.Color
-	SidebarTitleHot lipgloss.Color
+	SidebarTitle    color.Color
+	SidebarTitleHot color.Color
 }
 
 // Current is the process-wide active theme. Components read it for styling.

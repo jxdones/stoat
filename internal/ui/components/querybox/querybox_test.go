@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/jxdones/stoat/internal/ui/testutil"
 	"github.com/jxdones/stoat/internal/ui/theme"
@@ -16,10 +16,10 @@ func TestNew(t *testing.T) {
 		t.Errorf("New() Value() = %q, want empty", m.Value())
 	}
 	view := m.View()
-	if view == "" {
+	if view.Content == "" {
 		t.Error("New() View() is empty")
 	}
-	plain := testutil.StripANSI(view)
+	plain := testutil.StripANSI(view.Content)
 	if plain != "" && regexp.MustCompile(`sql>\s*`).FindString(plain) == "" {
 		if regexp.MustCompile("Enter your query").FindString(plain) == "" {
 			t.Logf("View (plain): %q", plain)
@@ -54,7 +54,7 @@ func TestSetSize_clamps_dimensions(t *testing.T) {
 			m := New()
 			m.SetSize(tt.width, tt.height)
 			view := m.View()
-			if view == "" {
+			if view.Content == "" {
 				t.Errorf("View() after SetSize(%d,%d) is empty", tt.width, tt.height)
 			}
 		})
@@ -84,7 +84,7 @@ func TestFocus_Blur_SetFocused(t *testing.T) {
 			m := New()
 			tt.run(&m)
 			view := m.View()
-			if view == "" {
+			if view.Content == "" {
 				t.Errorf("View() %s is empty", tt.name)
 			}
 		})
@@ -202,10 +202,10 @@ func TestView(t *testing.T) {
 			}
 			m.SetSize(40, 3)
 			view := m.View()
-			if view == "" {
+			if view.Content == "" {
 				t.Fatal("View() is empty")
 			}
-			plain := testutil.StripANSI(view)
+			plain := testutil.StripANSI(view.Content)
 			if plain == "" {
 				t.Fatal("View() has no plain text after stripping ANSI")
 			}

@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/key"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/key"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 
 	"github.com/jxdones/stoat/internal/ui/keys"
 	"github.com/jxdones/stoat/internal/ui/theme"
@@ -165,7 +165,7 @@ func (m Model) ActiveRow() (Row, bool) {
 
 // Update handles key messages and updates the model state.
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
-	keyMsg, ok := msg.(tea.KeyMsg)
+	keyMsg, ok := msg.(tea.KeyPressMsg)
 	if !ok {
 		return m, nil
 	}
@@ -234,12 +234,13 @@ func HelpBindings() []key.Binding {
 }
 
 // View renders a fixed-size table viewport with visible columns and rows.
-func (m Model) View() string {
+func (m Model) View() tea.View {
 	window := m.visibleColumns()
 	lines := make([]string, 0, m.height)
 	lines = append(lines, m.renderHeader(window.indices))
 	lines = append(lines, m.renderBody(window.indices)...)
-	return lipgloss.NewStyle().Width(m.width).Height(m.height).Render(strings.Join(lines, "\n"))
+	content := lipgloss.NewStyle().Width(m.width).Height(m.height).Render(strings.Join(lines, "\n"))
+	return tea.NewView(content)
 }
 
 // renderHeader renders the visible column titles with fixed width cells.
@@ -466,7 +467,7 @@ func normalizeCellText(s string) string {
 }
 
 // isDigitKey reports whether the key is a single digit 0-9 (for count prefix).
-func isDigitKey(keyMsg tea.KeyMsg) bool {
+func isDigitKey(keyMsg tea.KeyPressMsg) bool {
 	s := keyMsg.String()
 	if len(s) != 1 {
 		return false

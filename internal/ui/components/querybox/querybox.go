@@ -1,9 +1,9 @@
 package querybox
 
 import (
-	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/textarea"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/key"
+	"charm.land/bubbles/v2/textarea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/jxdones/stoat/internal/ui/common"
 	"github.com/jxdones/stoat/internal/ui/theme"
@@ -26,19 +26,20 @@ func New() Model {
 	ta.CharLimit = 10000
 	ta.SetHeight(1)
 
-	ta.FocusedStyle.Prompt = ta.FocusedStyle.Prompt.Foreground(theme.Current.TextAccent)
-	ta.FocusedStyle.Text = ta.FocusedStyle.Text.Foreground(theme.Current.TextPrimary)
-	ta.FocusedStyle.CursorLine = ta.FocusedStyle.CursorLine.Foreground(theme.Current.TextPrimary)
-	ta.FocusedStyle.CursorLineNumber = ta.FocusedStyle.CursorLineNumber.Foreground(theme.Current.TextMuted)
-	ta.FocusedStyle.LineNumber = ta.FocusedStyle.LineNumber.Foreground(theme.Current.TextMuted)
-	ta.FocusedStyle.Placeholder = ta.FocusedStyle.Placeholder.Foreground(theme.Current.TextMuted)
-
-	ta.BlurredStyle.Prompt = ta.BlurredStyle.Prompt.Foreground(theme.Current.TextMuted)
-	ta.BlurredStyle.Text = ta.BlurredStyle.Text.Foreground(theme.Current.TextPrimary)
-	ta.BlurredStyle.CursorLine = ta.BlurredStyle.CursorLine.Foreground(theme.Current.TextPrimary)
-	ta.BlurredStyle.CursorLineNumber = ta.BlurredStyle.CursorLineNumber.Foreground(theme.Current.TextMuted)
-	ta.BlurredStyle.LineNumber = ta.BlurredStyle.LineNumber.Foreground(theme.Current.TextMuted)
-	ta.BlurredStyle.Placeholder = ta.BlurredStyle.Placeholder.Foreground(theme.Current.TextMuted)
+	styles := ta.Styles()
+	styles.Focused.Prompt = styles.Focused.Prompt.Foreground(theme.Current.TextAccent)
+	styles.Focused.Text = styles.Focused.Text.Foreground(theme.Current.TextPrimary)
+	styles.Focused.CursorLine = styles.Focused.CursorLine.Foreground(theme.Current.TextPrimary)
+	styles.Focused.CursorLineNumber = styles.Focused.CursorLineNumber.Foreground(theme.Current.TextMuted)
+	styles.Focused.LineNumber = styles.Focused.LineNumber.Foreground(theme.Current.TextMuted)
+	styles.Focused.Placeholder = styles.Focused.Placeholder.Foreground(theme.Current.TextMuted)
+	styles.Blurred.Prompt = styles.Blurred.Prompt.Foreground(theme.Current.TextMuted)
+	styles.Blurred.Text = styles.Blurred.Text.Foreground(theme.Current.TextPrimary)
+	styles.Blurred.CursorLine = styles.Blurred.CursorLine.Foreground(theme.Current.TextPrimary)
+	styles.Blurred.CursorLineNumber = styles.Blurred.CursorLineNumber.Foreground(theme.Current.TextMuted)
+	styles.Blurred.LineNumber = styles.Blurred.LineNumber.Foreground(theme.Current.TextMuted)
+	styles.Blurred.Placeholder = styles.Blurred.Placeholder.Foreground(theme.Current.TextMuted)
+	ta.SetStyles(styles)
 	ta.Focus()
 
 	return Model{
@@ -94,9 +95,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 // View renders the query box with the current state.
-func (m Model) View() string {
-	return common.BorderedPane(m.width, m.height, m.focus, common.FocusBorder(m.focus)).
+func (m Model) View() tea.View {
+	content := common.BorderedPane(m.width, m.height, m.focus, common.FocusBorder(m.focus)).
 		Render(m.input.View())
+	return tea.NewView(content)
 }
 
 // HelpBindings returns the key bindings for the query box.

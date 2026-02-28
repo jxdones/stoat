@@ -1,9 +1,9 @@
 package filterbox
 
 import (
-	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/key"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/jxdones/stoat/internal/ui/theme"
 )
@@ -20,14 +20,15 @@ func New() Model {
 	ti.Prompt = "Filter: "
 	ti.Placeholder = "type to filter table rows, e.g. NLD or Dutch"
 	ti.CharLimit = 512
-	ti.Width = 50
-	ti.PromptStyle = ti.PromptStyle.Foreground(theme.Current.TextAccent)
+	ti.SetWidth(50)
+	styles := ti.Styles()
+	styles.Focused.Prompt = styles.Focused.Prompt.Foreground(theme.Current.TextAccent)
+	ti.SetStyles(styles)
 
 	return Model{
 		input: ti,
 		width: 50,
 	}
-
 }
 
 // Focus sets the focus state of the filter box to true.
@@ -58,8 +59,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 // View renders the filter box with the current state.
-func (m Model) View() string {
-	return m.input.View()
+func (m Model) View() tea.View {
+	return tea.NewView(m.input.View())
 }
 
 // HelpBindings returns the key bindings for the filter box.

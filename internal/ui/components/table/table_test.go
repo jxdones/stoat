@@ -3,37 +3,49 @@ package table
 import (
 	"maps"
 	"testing"
+	"unicode/utf8"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 
 	"github.com/jxdones/stoat/internal/ui/testutil"
 )
 
-// keyMsg creates a tea.KeyMsg for testing. Supports: "up", "down", "left", "right", "home", "end", "g", "G", "k", "j", "h", "l".
-func keyMsg(s string) tea.KeyMsg {
+// keyMsg creates a tea.KeyPressMsg for testing. Supports named keys used by the table:
+// "up", "down", "left", "right", "home", "end", "enter", "space", "g", "G", "j", "k", "h", "l", and single runes (e.g. digits).
+func keyMsg(s string) tea.KeyPressMsg {
+	code, text, _ := keyToCode(s)
+	return tea.KeyPressMsg(tea.Key{Code: code, Text: text, Mod: 0})
+}
+
+func keyToCode(s string) (code rune, text string, mod tea.KeyMod) {
 	switch s {
 	case "up":
-		return tea.KeyMsg{Type: tea.KeyUp}
+		return tea.KeyUp, "", 0
 	case "down":
-		return tea.KeyMsg{Type: tea.KeyDown}
+		return tea.KeyDown, "", 0
 	case "left":
-		return tea.KeyMsg{Type: tea.KeyLeft}
+		return tea.KeyLeft, "", 0
 	case "right":
-		return tea.KeyMsg{Type: tea.KeyRight}
+		return tea.KeyRight, "", 0
 	case "home":
-		return tea.KeyMsg{Type: tea.KeyHome}
+		return tea.KeyHome, "", 0
 	case "end":
-		return tea.KeyMsg{Type: tea.KeyEnd}
+		return tea.KeyEnd, "", 0
+	case "enter":
+		return tea.KeyEnter, "", 0
+	case "space":
+		return tea.KeySpace, " ", 0
 	case "g":
-		return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("g")}
+		return 'g', "g", 0
 	case "G":
-		return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("G")}
+		return 'G', "G", 0
 	default:
 		if len(s) > 0 {
-			return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(s)}
+			r, _ := utf8.DecodeRuneInString(s)
+			return r, s, 0
 		}
-		return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(" ")}
+		return ' ', " ", 0
 	}
 }
 
@@ -495,7 +507,7 @@ func Test_SetSize_clamps_to_min_width_and_height(t *testing.T) {
 	m.SetSize(1, 1)
 	// Model doesn't expose width/height; we only check View doesn't panic and has content
 	view := m.View()
-	if view == "" {
+	if view.Content == "" {
 		t.Error("View() after SetSize(1,1) is empty")
 	}
 }
@@ -986,10 +998,10 @@ func Test_Update_non_key_message_returns_unchanged_model(t *testing.T) {
 	})
 	m2, cmd := m.Update(tea.WindowSizeMsg{Width: 100, Height: 50})
 	if m2.RowCount() != m.RowCount() || m2.ColumnCount() != m.ColumnCount() {
-		t.Error("Update(non-KeyMsg) should leave model unchanged")
+		t.Error("Update(non-KeyPressMsg) should leave model unchanged")
 	}
 	if cmd != nil {
-		t.Error("Update(non-KeyMsg) should return nil cmd")
+		t.Error("Update(non-KeyPressMsg) should return nil cmd")
 	}
 	_ = cmd
 }
@@ -1015,11 +1027,11 @@ func Test_View_returns_non_empty_and_has_header_and_body_lines(t *testing.T) {
 	}
 	m := New(columns, rows)
 	view := m.View()
-	if view == "" {
+	if view.Content == "" {
 		t.Error("View() returned empty string")
 	}
 	lines := 0
-	for _, r := range view {
+	for _, r := range view.Content {
 		if r == '\n' {
 			lines++
 		}

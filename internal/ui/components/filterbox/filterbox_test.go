@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/jxdones/stoat/internal/ui/testutil"
 	"github.com/jxdones/stoat/internal/ui/theme"
@@ -16,10 +16,10 @@ func TestNew(t *testing.T) {
 		t.Errorf("New() Value() = %q, want empty", m.Value())
 	}
 	view := m.View()
-	if view == "" {
+	if view.Content == "" {
 		t.Error("New() View() is empty")
 	}
-	plain := testutil.StripANSI(view)
+	plain := testutil.StripANSI(view.Content)
 	if regexp.MustCompile("Filter:").FindString(plain) == "" &&
 		regexp.MustCompile("filter table rows").FindString(plain) == "" {
 		t.Logf("View (plain): %q", plain)
@@ -45,7 +45,7 @@ func TestFocus_Blur(t *testing.T) {
 			m := New()
 			tt.run(&m)
 			view := m.View()
-			if view == "" {
+			if view.Content == "" {
 				t.Errorf("View() %s is empty", tt.name)
 			}
 		})
@@ -159,10 +159,10 @@ func TestView(t *testing.T) {
 				m.SetValue(tt.setValue)
 			}
 			view := m.View()
-			if view == "" {
+			if view.Content == "" {
 				t.Fatal("View() is empty")
 			}
-			plain := testutil.StripANSI(view)
+			plain := testutil.StripANSI(view.Content)
 			if plain == "" {
 				t.Fatal("View() has no plain text after stripping ANSI")
 			}

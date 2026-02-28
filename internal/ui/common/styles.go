@@ -1,7 +1,9 @@
 package common
 
 import (
-	"github.com/charmbracelet/lipgloss"
+	"image/color"
+
+	"charm.land/lipgloss/v2"
 
 	"github.com/jxdones/stoat/internal/ui/theme"
 )
@@ -12,7 +14,7 @@ const (
 )
 
 // FocusBorder returns the border color for the given focused state.
-func FocusBorder(focused bool) lipgloss.Color {
+func FocusBorder(focused bool) color.Color {
 	if focused {
 		return theme.Current.BorderFocused
 	}
@@ -20,7 +22,7 @@ func FocusBorder(focused bool) lipgloss.Color {
 }
 
 // BorderedBox returns a style for a bordered box with the given width and border color.
-func BorderedBox(width int, borderColor lipgloss.Color) lipgloss.Style {
+func BorderedBox(width int, borderColor color.Color) lipgloss.Style {
 	return lipgloss.NewStyle().
 		Width(ClampMin(width-boxHorizontalFrameColumns, minDimension)).
 		Border(lipgloss.NormalBorder()).
@@ -29,7 +31,7 @@ func BorderedBox(width int, borderColor lipgloss.Color) lipgloss.Style {
 }
 
 // BorderedPane returns a style for a bordered pane with the given width, height, and border color.
-func BorderedPane(width, height int, focused bool, borderColor lipgloss.Color) lipgloss.Style {
+func BorderedPane(width, height int, focused bool, borderColor color.Color) lipgloss.Style {
 	return BorderedBox(width, borderColor).
 		Height(ClampMin(height-paneVerticalBorderRows, minDimension))
 }

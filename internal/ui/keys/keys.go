@@ -1,6 +1,6 @@
 package keys
 
-import "github.com/charmbracelet/bubbles/key"
+import "charm.land/bubbles/v2/key"
 
 // KeyMap holds key bindings for general navigation (vi-style and arrows).
 type KeyMap struct {

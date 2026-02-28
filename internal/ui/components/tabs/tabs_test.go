@@ -15,10 +15,10 @@ func TestNew(t *testing.T) {
 		t.Errorf("New() first tab active: ActiveTab() = %q, want %q", m.ActiveTab(), "Results")
 	}
 	view := m.View()
-	if view == "" {
+	if view.Content == "" {
 		t.Error("New() View() is empty")
 	}
-	plain := testutil.StripANSI(view)
+	plain := testutil.StripANSI(view.Content)
 	if regexp.MustCompile("Sections:").FindString(plain) == "" {
 		t.Errorf("View() should contain \"Sections:\"; plain: %q", plain)
 	}
@@ -140,7 +140,7 @@ func TestSetSize(t *testing.T) {
 			m := New([]string{"A", "B"})
 			m.SetSize(tt.width)
 			view := m.View()
-			if view == "" {
+			if view.Content == "" {
 				t.Errorf("View() after SetSize(%d) is empty", tt.width)
 			}
 		})
@@ -166,7 +166,7 @@ func TestSetFocused(t *testing.T) {
 			m := New([]string{"A"})
 			m.SetFocused(tt.focused)
 			view := m.View()
-			if view == "" {
+			if view.Content == "" {
 				t.Errorf("View() after SetFocused(%v) is empty", tt.focused)
 			}
 		})
@@ -181,10 +181,10 @@ func TestApplyViewState(t *testing.T) {
 	m := New([]string{"A", "B"})
 	m.ApplyViewState(viewstate.ViewState{Width: 40, Focused: true})
 	view := m.View()
-	if view == "" {
+	if view.Content == "" {
 		t.Error("View() after ApplyViewState is empty")
 	}
-	plain := testutil.StripANSI(view)
+	plain := testutil.StripANSI(view.Content)
 	if regexp.MustCompile("Sections:").FindString(plain) == "" {
 		t.Errorf("View() should contain \"Sections:\"; plain: %q", plain)
 	}
@@ -239,10 +239,10 @@ func TestView(t *testing.T) {
 			}
 			m.SetSize(tt.setWidth)
 			view := m.View()
-			if view == "" {
+			if view.Content == "" {
 				t.Fatal("View() is empty")
 			}
-			plain := testutil.StripANSI(view)
+			plain := testutil.StripANSI(view.Content)
 			if regexp.MustCompile(regexp.QuoteMeta(tt.wantContains)).FindString(plain) == "" {
 				t.Errorf("View() plain should contain %q; got: %q", tt.wantContains, plain)
 			}

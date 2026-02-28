@@ -4,15 +4,16 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/key"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 
 	"github.com/jxdones/stoat/internal/ui/common"
 	"github.com/jxdones/stoat/internal/ui/theme"
 	"github.com/jxdones/stoat/internal/ui/viewstate"
 )
 
-// Model represents a tabs component with a list of tabs.
+// Model represents a list of tabs and the active tab.
 type Model struct {
 	tabs   []string
 	active int
@@ -63,7 +64,7 @@ func (m *Model) ApplyViewState(viewState viewstate.ViewState) {
 
 // View renders the tabs component as a single-line bordered box. The active tab
 // is highlighted; content is clipped with "…" when it exceeds the box width.
-func (m Model) View() string {
+func (m Model) View() tea.View {
 	width := common.ClampMin(m.width, 24)
 	contentWidth := common.BoxContentWidth(width)
 
@@ -108,8 +109,9 @@ func (m Model) View() string {
 		line += strings.Repeat(" ", contentWidth-used)
 	}
 
-	return common.BorderedBox(width, common.FocusBorder(m.focus)).
+	content := common.BorderedBox(width, common.FocusBorder(m.focus)).
 		Render(line)
+	return tea.NewView(content)
 }
 
 // HelpBindings returns the key bindings for switching sections.
