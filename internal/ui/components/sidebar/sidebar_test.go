@@ -147,6 +147,109 @@ func TestClamp_empty_databases(t *testing.T) {
 	}
 }
 
+func TestSetDatabases_filters_blank_entries(t *testing.T) {
+	tests := []struct {
+		name          string
+		input         []string
+		wantFirst     string
+		wantAfterMove string
+	}{
+		{
+			name:          "filters_whitespace_only_entries",
+			input:         []string{"", "  ", "db1", "\t", "db2"},
+			wantFirst:     "db1",
+			wantAfterMove: "db2",
+		},
+		{
+			name:          "keeps_clean_list",
+			input:         []string{"main", "analytics"},
+			wantFirst:     "main",
+			wantAfterMove: "analytics",
+		},
+		{
+			name:          "all_blank_results_in_empty_selection",
+			input:         []string{"", " ", "\t"},
+			wantFirst:     "",
+			wantAfterMove: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := New(nil, nil)
+			m.SetDatabases(tt.input)
+			m.SetSize(20, 12)
+
+			if got := m.SelectedDB(); got != tt.wantFirst {
+				t.Fatalf("SelectedDB() = %q, want %q", got, tt.wantFirst)
+			}
+
+			m.Move(1)
+			if got := m.SelectedDB(); got != tt.wantAfterMove {
+				t.Fatalf("after Move(1) SelectedDB() = %q, want %q", got, tt.wantAfterMove)
+			}
+
+			// A second move should remain clamped at the last valid item.
+			m.Move(1)
+			if got := m.SelectedDB(); got != tt.wantAfterMove {
+				t.Fatalf("after Move(2) SelectedDB() = %q, want %q (clamped)", got, tt.wantAfterMove)
+			}
+		})
+	}
+}
+
+func TestSetTables_filters_blank_entries(t *testing.T) {
+	tests := []struct {
+		name          string
+		input         []string
+		wantFirst     string
+		wantAfterMove string
+	}{
+		{
+			name:          "filters_whitespace_only_entries",
+			input:         []string{"", "  ", "users", "\n", "orders"},
+			wantFirst:     "users",
+			wantAfterMove: "orders",
+		},
+		{
+			name:          "keeps_clean_list",
+			input:         []string{"sessions", "events"},
+			wantFirst:     "sessions",
+			wantAfterMove: "events",
+		},
+		{
+			name:          "all_blank_results_in_empty_selection",
+			input:         []string{"", " ", "\t"},
+			wantFirst:     "(none)",
+			wantAfterMove: "(none)",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := New([]string{"db1"}, nil)
+			m.SetTables("db1", tt.input)
+			m.OpenSelectedDatabase()
+			m.SetSize(20, 12)
+
+			if got := m.SelectedTable(); got != tt.wantFirst {
+				t.Fatalf("SelectedTable() = %q, want %q", got, tt.wantFirst)
+			}
+
+			m.Move(1)
+			if got := m.SelectedTable(); got != tt.wantAfterMove {
+				t.Fatalf("after Move(1) SelectedTable() = %q, want %q", got, tt.wantAfterMove)
+			}
+
+			// A second move should remain clamped at the last valid item.
+			m.Move(1)
+			if got := m.SelectedTable(); got != tt.wantAfterMove {
+				t.Fatalf("after Move(2) SelectedTable() = %q, want %q (clamped)", got, tt.wantAfterMove)
+			}
+		})
+	}
+}
+
 func TestClamp_selection_in_bounds(t *testing.T) {
 	m := New([]string{"a", "b", "c"}, map[string][]string{"a": {"t1", "t2"}})
 	m.OpenSelectedDatabase()

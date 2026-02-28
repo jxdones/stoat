@@ -95,7 +95,7 @@ func (m *Model) SetFocused(focused bool) {
 
 // SetDatabases sets the databases.
 func (m *Model) SetDatabases(databases []string) {
-	dbs := make([]string, len(databases))
+	dbs := make([]string, 0, len(databases))
 	for _, db := range databases {
 		if strings.TrimSpace(db) != "" {
 			dbs = append(dbs, db)
@@ -113,7 +113,7 @@ func (m *Model) SetTables(db string, tables []string) {
 	if m.tables == nil {
 		m.tables = make(map[string][]string)
 	}
-	tbls := make([]string, len(tables))
+	tbls := make([]string, 0, len(tables))
 	for _, table := range tables {
 		if strings.TrimSpace(table) != "" {
 			tbls = append(tbls, table)
