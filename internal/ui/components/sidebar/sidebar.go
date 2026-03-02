@@ -497,7 +497,7 @@ func keepOffsetVisible(selected, maxRows, offset, total int) int {
 
 // sectionTile renders a section tile with the given title and active state.
 func sectionTile(title string, active bool) string {
-	style := lipgloss.NewStyle().Foreground(theme.Current.SidebarTitle)
+	style := lipgloss.NewStyle().Foreground(theme.Current.SidebarTitle).Bold(true)
 	if active {
 		style = style.Foreground(theme.Current.SidebarTitleHot)
 	}
