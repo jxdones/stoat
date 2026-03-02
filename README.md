@@ -21,13 +21,33 @@ Stoat hits the sweet spot:
 
 ## Current state
 
-Stoat is **early in development**. Right now the repo contains:
+Stoat is **early in development**. The TUI shell is in place with:
 
-* **Table component:** a Bubbletea component for data grids (scrollable viewport, vim-style navigation, column sizing)
-* **UI building blocks:** theme, key bindings, and shortcut helpers
+* **Layout:** Responsive two-pane layout (sidebar + main). The main area has a header, tab bar, data table, detail row, and query box. Layout adapts to narrow or short terminals.
+* **Sidebar:** Databases and Tables sections with vi-style navigation (`j`/`k`, `h`/`l`, `g`/`G`). Enter selects a database or table and moves focus to the table view.
+* **Tabs:** Metadata views for the selected table.
+* **Table:** Data grid with the same vi-style keys for moving around rows and cells.
+* **Filter box:** Text input to filter the current table view.
+* **Query box:** SQL input area for running queries.
+* **Status bar:** Message line (e.g. "Ready") with severity (info, success, warning, error).
+* **Focus:** Tab / Shift+Tab cycles focus: Sidebar → Filterbox → Table → Querybox → Sidebar.
 
-There is no runnable binary yet. To see how the table component is used, look at
-`internal/ui/components/table/table_test.go` (usage examples and behavior are covered there).
+No database driver or connection logic is implemented yet.
+
+## Building
+
+```bash
+make build    # builds bin/stoat
+make test     # run tests
+make fmt      # format code
+make lint     # run golangci-lint
+```
+
+Run the app:
+
+```bash
+./bin/stoat
+```
 
 ## License
 

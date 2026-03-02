@@ -37,7 +37,8 @@ func TestSetActive(t *testing.T) {
 			setIndex:   0,
 			wantActive: "A",
 		},
-		{name: "second_tab",
+		{
+			name:       "second_tab",
 			tabs:       []string{"A", "B"},
 			setIndex:   1,
 			wantActive: "B",

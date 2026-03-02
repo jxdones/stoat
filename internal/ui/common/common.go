@@ -3,7 +3,6 @@ package common
 const (
 	minDimension              = 1
 	boxHorizontalFrameColumns = 4
-	boxContentInsetColumns    = 2
 	paneVerticalBorderRows    = 2
 )
 
@@ -30,8 +29,7 @@ func PaneInnerHeight(outerHeight int) int {
 }
 
 // BoxContentWidth converts an outer box width to plain text content width.
-// It subtracts border+padding via BoxInnerWidth, then another 2 columns used
-// by framed box content alignment in this TUI.
+// It subtracts border+padding via BoxInnerWidth.
 func BoxContentWidth(outerWidth int) int {
-	return ClampMin(BoxInnerWidth(outerWidth)-boxContentInsetColumns, minDimension)
+	return ClampMin(BoxInnerWidth(outerWidth), minDimension)
 }

@@ -40,8 +40,8 @@ func keyMsg(key string) tea.KeyPressMsg {
 
 func TestNew(t *testing.T) {
 	m := New([]string{"a", "b"}, nil)
-	if m.OpenedDB() != "" {
-		t.Errorf("OpenedDB() = %q, want empty", m.OpenedDB())
+	if m.ActiveDB() != "" {
+		t.Errorf("ActiveDB() = %q, want empty", m.ActiveDB())
 	}
 	if m.SelectedDB() != "a" {
 		t.Errorf("SelectedDB() = %q, want a", m.SelectedDB())
@@ -142,8 +142,8 @@ func TestClamp_empty_databases(t *testing.T) {
 	if m.SelectedDB() != "" {
 		t.Errorf("SelectedDB() with no DBs = %q, want empty", m.SelectedDB())
 	}
-	if m.OpenedDB() != "" {
-		t.Errorf("OpenedDB() with no DBs = %q, want empty", m.OpenedDB())
+	if m.ActiveDB() != "" {
+		t.Errorf("ActiveDB() with no DBs = %q, want empty", m.ActiveDB())
 	}
 }
 
@@ -306,8 +306,8 @@ func TestOpenSelectedDatabase_switches_to_tables_section(t *testing.T) {
 	if !m.InTablesSection() {
 		t.Error("after OpenSelectedDatabase expected InTablesSection() true")
 	}
-	if m.OpenedDB() != "db1" {
-		t.Errorf("OpenedDB() = %q, want db1", m.OpenedDB())
+	if m.ActiveDB() != "db1" {
+		t.Errorf("ActiveDB() = %q, want db1", m.ActiveDB())
 	}
 	if m.SelectedTable() != "t1" {
 		t.Errorf("SelectedTable() = %q, want t1", m.SelectedTable())

@@ -24,7 +24,7 @@ func FocusBorder(focused bool) color.Color {
 // BorderedBox returns a style for a bordered box with the given width and border color.
 func BorderedBox(width int, borderColor color.Color) lipgloss.Style {
 	return lipgloss.NewStyle().
-		Width(ClampMin(width-boxHorizontalFrameColumns, minDimension)).
+		Width(ClampMin(width, minDimension)).
 		Border(lipgloss.NormalBorder()).
 		BorderForeground(borderColor).
 		Padding(noVerticalPaddingRows, horizontalPaddingCols)
@@ -33,5 +33,15 @@ func BorderedBox(width int, borderColor color.Color) lipgloss.Style {
 // BorderedPane returns a style for a bordered pane with the given width, height, and border color.
 func BorderedPane(width, height int, focused bool, borderColor color.Color) lipgloss.Style {
 	return BorderedBox(width, borderColor).
-		Height(ClampMin(height-paneVerticalBorderRows, minDimension))
+		Height(ClampMin(height, minDimension))
+}
+
+// DividerTopRow returns a style for a divider top row with the given width and border color.
+func DividerTopRow(width int, borderColor color.Color) lipgloss.Style {
+	return lipgloss.NewStyle().
+		Width(width).
+		BorderTop(true).
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(borderColor).
+		Padding(noVerticalPaddingRows, horizontalPaddingCols)
 }

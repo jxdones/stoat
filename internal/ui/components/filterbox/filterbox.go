@@ -17,12 +17,12 @@ type Model struct {
 // New creates a new filter box model with the default configuration.
 func New() Model {
 	ti := textinput.New()
-	ti.Prompt = "Filter: "
-	ti.Placeholder = "type to filter table rows, e.g. NLD or Dutch"
+	ti.Placeholder = "e.g. NLD or Dutch"
 	ti.CharLimit = 512
 	ti.SetWidth(50)
 	styles := ti.Styles()
 	styles.Focused.Prompt = styles.Focused.Prompt.Foreground(theme.Current.TextAccent)
+	styles.Blurred.Prompt = styles.Blurred.Prompt.Foreground(theme.Current.TextMuted)
 	ti.SetStyles(styles)
 
 	return Model{

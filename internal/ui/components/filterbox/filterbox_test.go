@@ -167,9 +167,11 @@ func TestView(t *testing.T) {
 				t.Fatal("View() has no plain text after stripping ANSI")
 			}
 			if regexp.MustCompile(regexp.QuoteMeta(tt.wantContains)).FindString(plain) == "" {
-				if tt.setValue == "" && regexp.MustCompile("filter table rows").FindString(plain) == "" {
-					t.Errorf("View() plain should contain %q or placeholder; got: %q", tt.wantContains, plain)
-				} else if tt.setValue != "" {
+				if tt.setValue == "" {
+					if regexp.MustCompile(`e\.g\. NLD or Dutch`).FindString(plain) == "" {
+						t.Errorf("View() plain should contain %q or placeholder (e.g. NLD or Dutch); got: %q", tt.wantContains, plain)
+					}
+				} else {
 					t.Errorf("View() plain should contain %q; got: %q", tt.wantContains, plain)
 				}
 			}

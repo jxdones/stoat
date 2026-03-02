@@ -199,9 +199,7 @@ func (m Model) View() tea.View {
 	innerHeight := common.PaneInnerHeight(height)
 	dbRows, tableRows := m.visibleRows()
 	if innerHeight <= 0 {
-		content := common.BorderedPane(width, height, m.focused, common.FocusBorder(m.focused)).
-			BorderTop(true).
-			Render("")
+		content := common.BorderedPane(width, height, m.focused, common.FocusBorder(m.focused)).Render("")
 		return tea.NewView(content)
 	}
 
@@ -218,9 +216,7 @@ func (m Model) View() tea.View {
 	if len(lines) > innerHeight {
 		lines = lines[:innerHeight]
 	}
-	content := common.BorderedPane(width, height, m.focused, common.FocusBorder(m.focused)).
-		BorderTop(true).
-		Render(strings.Join(lines, "\n"))
+	content := common.BorderedPane(width, height, m.focused, common.FocusBorder(m.focused)).Render(strings.Join(lines, "\n"))
 	return tea.NewView(content)
 }
 
@@ -467,8 +463,8 @@ func (m Model) SelectedTable() string {
 	return tables[m.selectedTable]
 }
 
-// OpenedDB returns the currently opened database.
-func (m Model) OpenedDB() string {
+// ActiveDB returns the currently active/opened database.
+func (m Model) ActiveDB() string {
 	if m.openedDB < 0 || m.openedDB >= len(m.databases) {
 		return ""
 	}
