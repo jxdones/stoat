@@ -36,6 +36,12 @@ type (
 	QueryRunRequestedMsg struct {
 		Query string
 	}
+	CellEditDoneMsg struct {
+		RowIndex int
+		ColIndex int
+		Value    string
+		Err      error
+	}
 )
 
 // LoadDatabasesCmd returns a command that loads the list of databases from the

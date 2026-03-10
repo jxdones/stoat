@@ -266,6 +266,53 @@ func ptrFocus(p FocusedPanel) *FocusedPanel {
 	return &p
 }
 
+func TestUpdate_PasteMsg(t *testing.T) {
+	tests := []struct {
+		name         string
+		focus        FocusedPanel
+		initialValue string
+		pasteContent string
+		wantValue    string
+		wantNilCmd   bool
+	}{
+		{
+			name:         "forwarded_to_querybox_when_focused",
+			focus:        FocusQuerybox,
+			initialValue: "",
+			pasteContent: "SELECT 1",
+			wantValue:    "SELECT 1",
+			wantNilCmd:   false, // textarea may return a cmd (e.g. blink)
+		},
+		{
+			name:         "ignored_when_querybox_not_focused",
+			focus:        FocusSidebar,
+			initialValue: "existing",
+			pasteContent: "pasted",
+			wantValue:    "existing",
+			wantNilCmd:   true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := New()
+			m.view.focus = tt.focus
+			m.querybox.SetValue(tt.initialValue)
+			if tt.focus == FocusQuerybox {
+				m.querybox.Focus()
+			}
+
+			next, cmd := m.Update(tea.PasteMsg{Content: tt.pasteContent})
+			got := next.(Model)
+			if got.querybox.Value() != tt.wantValue {
+				t.Errorf("querybox value = %q, want %q", got.querybox.Value(), tt.wantValue)
+			}
+			if tt.wantNilCmd && cmd != nil {
+				t.Errorf("Update(PasteMsg) want nil cmd, got %v", cmd)
+			}
+		})
+	}
+}
+
 func TestUpdate_EscClearsFocusAndQQuits(t *testing.T) {
 	m := New()
 	m.view.focus = FocusQuerybox

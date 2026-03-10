@@ -53,23 +53,38 @@ func (m Model) handleRowsLoaded(msg RowsLoadedMsg) (tea.Model, tea.Cmd) {
 }
 
 // handleQueryExecuted handles the QueryExecutedMsg and updates the status bar.
+// Queries that return a result set (SELECT, or INSERT/UPDATE/DELETE ... RETURNING)
+// replace the table with that result. Plain DML with no result set only shows
+// the affected row count in the status bar and leaves the table as-is.
 func (m Model) handleQueryExecuted(msg QueryExecutedMsg) (tea.Model, tea.Cmd) {
 	if msg.Err != nil {
 		cmd := m.statusbar.SetStatusWithTTL(" Query failed: "+msg.Err.Error(), statusbar.Error, 4*time.Second)
 		return m, cmd
 	}
 	m.querybox.SetValue("")
-	m.resetPaging()
-	m.table.SetColumns(dbColumnsToTable(msg.Result.Columns))
-	m.table.SetRows(dbRowsToTable(msg.Result.Rows))
+	m.view.focus = FocusTable
+
+	hasResultSet := len(msg.Result.Columns) > 0 || len(msg.Result.Rows) > 0
+	if hasResultSet {
+		m.resetPaging()
+		m.table.SetColumns(dbColumnsToTable(msg.Result.Columns))
+		m.table.SetRows(dbRowsToTable(msg.Result.Rows))
+		m.applyViewState()
+		cmd := m.statusbar.SetStatusWithTTL(
+			fmt.Sprintf(" Query ok: %d rows (%d affected)", len(msg.Result.Rows), msg.Result.RowsAffected),
+			statusbar.Success,
+			3*time.Second,
+		)
+		return m, cmd
+	}
+
+	// DML with no result set: show affected count only; table stays as-is.
 	m.applyViewState()
-	cmd := m.statusbar.SetStatusWithTTL(
-		fmt.Sprintf(" Query ok: %d rows (%d affected)", len(msg.Result.Rows), msg.Result.RowsAffected),
+	return m, m.statusbar.SetStatusWithTTL(
+		fmt.Sprintf(" Query ok: %d row(s) affected", msg.Result.RowsAffected),
 		statusbar.Success,
 		3*time.Second,
 	)
-	m.view.focus = FocusTable
-	return m, cmd
 }
 
 // handleWindowSize handles the WindowSizeMsg and updates the view state.
@@ -216,6 +231,17 @@ func (m Model) handleUpdateFocused(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case FocusTable:
 		next, cmd := m.table.Update(msg)
 		m.table = next
+		return m, cmd
+	}
+	return m, nil
+}
+
+// handlePasteMsg handles the PasteMsg and updates the focused component.
+func (m Model) handlePasteMsg(msg tea.PasteMsg) (tea.Model, tea.Cmd) {
+	switch m.view.focus {
+	case FocusQuerybox:
+		next, cmd := m.querybox.Update(msg)
+		m.querybox = next
 		return m, cmd
 	}
 	return m, nil

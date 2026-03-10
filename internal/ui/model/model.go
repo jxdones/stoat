@@ -141,6 +141,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case tea.KeyPressMsg:
 		return m.handleKeyPress(msg)
+	case tea.PasteMsg:
+		return m.handlePasteMsg(msg)
 	}
 	return m, nil
 }
