@@ -2,6 +2,8 @@ package model
 
 import (
 	"context"
+	"os"
+	"os/exec"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
@@ -13,36 +15,50 @@ import (
 // DefaultPageLimit is the number of rows loaded per page for table data.
 const DefaultPageLimit = 200
 
-// Messages returned by async load commands. Handle these in Model.Update to
-// update the sidebar, table, and paging state.
-type (
-	DatabasesLoadedMsg struct {
-		Databases []string
-		Err       error
-	}
-	TablesLoadedMsg struct {
-		Database string
-		Tables   []string
-		Err      error
-	}
-	RowsLoadedMsg struct {
-		Result database.PageResult
-		Err    error
-	}
-	QueryExecutedMsg struct {
-		Result database.QueryResult
-		Err    error
-	}
-	QueryRunRequestedMsg struct {
-		Query string
-	}
-	CellEditDoneMsg struct {
-		RowIndex int
-		ColIndex int
-		Value    string
-		Err      error
-	}
-)
+// Messages returned by async load commands. Handle these in Model.Update to update the model.
+// DatabasesLoadedMsg is sent when a list of databases is loaded.
+type DatabasesLoadedMsg struct {
+	Databases []string
+	Err       error
+}
+
+// TablesLoadedMsg is sent when a list of tables is loaded.
+type TablesLoadedMsg struct {
+	Database string
+	Tables   []string
+	Err      error
+}
+
+// RowsLoadedMsg is sent when a page of rows is loaded.
+type RowsLoadedMsg struct {
+	Result database.PageResult
+	Err    error
+}
+
+// QueryExecutedMsg is sent when a query execution completes.
+type QueryExecutedMsg struct {
+	Result database.QueryResult
+	Err    error
+}
+
+// QueryRunRequestedMsg is sent when the user requests to run a query.
+type QueryRunRequestedMsg struct {
+	Query string
+}
+
+// EditorQueryMsg is sent when the user closes the editor after editing a query.
+type EditorQueryMsg struct {
+	Query string
+	Err   error
+}
+
+// TableConstraintsLoadedMsg is sent when constraints for a table have been loaded.
+// Used to store primary key columns for safe UPDATE generation.
+type TableConstraintsLoadedMsg struct {
+	Target      database.DatabaseTarget
+	Constraints []database.Constraint
+	Err         error
+}
 
 // LoadDatabasesCmd returns a command that loads the list of databases from the
 // data source. On completion it sends a DatabasesLoadedMsg.
@@ -65,6 +81,18 @@ func LoadTablesCmd(source datasource.DataSource, dbName string) tea.Cmd {
 		}
 		tables, err := source.Tables(context.Background(), dbName)
 		return TablesLoadedMsg{Database: dbName, Tables: tables, Err: err}
+	}
+}
+
+// LoadTableConstraintsCmd returns a command that loads constraints for the given
+// target. On completion it sends a TableConstraintsLoadedMsg.
+func LoadTableConstraintsCmd(source datasource.DataSource, target database.DatabaseTarget) tea.Cmd {
+	return func() tea.Msg {
+		if source == nil {
+			return TableConstraintsLoadedMsg{Err: database.ErrNoConnection}
+		}
+		constraints, err := source.Constraints(context.Background(), target)
+		return TableConstraintsLoadedMsg{Target: target, Constraints: constraints, Err: err}
 	}
 }
 
@@ -102,5 +130,50 @@ func RunQueryCmd(source datasource.DataSource, query string) tea.Cmd {
 func RequestQueryRunCmd(query string) tea.Cmd {
 	return tea.Tick(120*time.Millisecond, func(time.Time) tea.Msg {
 		return QueryRunRequestedMsg{Query: query}
+	})
+}
+
+// OpenEditorWithQueryCmd returns a command that opens the editor with the given query.
+func OpenEditorWithQueryCmd(query string) tea.Cmd {
+	f, err := os.CreateTemp("", "stoat-editor-*.sql")
+	if err != nil {
+		return func() tea.Msg {
+			return EditorQueryMsg{Err: err}
+		}
+	}
+
+	_, err = f.WriteString(query)
+	if err != nil {
+		f.Close()
+		_ = os.Remove(f.Name())
+		return func() tea.Msg {
+			return EditorQueryMsg{Err: err}
+		}
+	}
+
+	path := f.Name()
+	if err := f.Close(); err != nil {
+		_ = os.Remove(path)
+		return func() tea.Msg {
+			return EditorQueryMsg{Err: err}
+		}
+	}
+
+	editor := os.Getenv("EDITOR")
+	if editor == "" {
+		editor = "vim"
+	}
+
+	cmd := exec.Command(editor, path)
+	return tea.ExecProcess(cmd, func(execErr error) tea.Msg {
+		content, readErr := os.ReadFile(path)
+		_ = os.Remove(path)
+		if execErr != nil {
+			return EditorQueryMsg{Err: execErr}
+		}
+		if readErr != nil {
+			return EditorQueryMsg{Err: readErr}
+		}
+		return EditorQueryMsg{Query: string(content), Err: nil}
 	})
 }

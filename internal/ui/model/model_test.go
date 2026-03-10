@@ -628,7 +628,7 @@ func TestCtrlSInQuerybox(t *testing.T) {
 			},
 			wantCmd:            true,
 			wantQueryCmd:       true,
-			wantStatusContains: "Query ok: 1 rows",
+			wantStatusContains: "Query ok: 1 row(s) returned",
 			wantColumns:        2,
 			wantRows:           1,
 			wantCleared:        true,

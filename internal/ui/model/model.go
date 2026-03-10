@@ -3,6 +3,7 @@ package model
 import (
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/jxdones/stoat/internal/database"
 	"github.com/jxdones/stoat/internal/ui/common"
 	"github.com/jxdones/stoat/internal/ui/components/filterbox"
 	"github.com/jxdones/stoat/internal/ui/components/querybox"
@@ -34,6 +35,12 @@ type Model struct {
 	filterbox filterbox.Model
 	table     table.Model
 	paging    pagingState
+
+	// tablePKColumns are primary key column names for the table last loaded; used to build
+	// a safe WHERE clause when generating UPDATE from a cell. tablePKTarget identifies
+	// which table they belong to.
+	tablePKColumns []string
+	tablePKTarget  database.DatabaseTarget
 }
 
 // New creates a new root model with default component state.
@@ -134,6 +141,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleQueryExecuted(msg)
 	case QueryRunRequestedMsg:
 		return m, RunQueryCmd(m.source, msg.Query)
+	case EditorQueryMsg:
+		return m.handleEditorQueryDone(msg)
+	case TableConstraintsLoadedMsg:
+		return m.handleTableConstraintsLoaded(msg)
 	case tea.WindowSizeMsg:
 		return m.handleWindowSize(msg)
 	case statusbar.ExpiredMsg:

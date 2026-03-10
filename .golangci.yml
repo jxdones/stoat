@@ -16,3 +16,7 @@ linters:
           - errcheck
         path: 'cmd/stoat/main\.go'
         text: 'conn\.Close'
+      - linters:
+          - errcheck
+        path: 'internal/ui/model/msgs\.go'
+        text: 'f\.Close'

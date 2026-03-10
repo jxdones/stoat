@@ -60,6 +60,7 @@ make lint     # run golangci-lint
 | `Enter` | Open selected table | Sidebar |
 | `Ctrl+N` / `Ctrl+B` | Next / previous page | Table |
 | `N` + motion (e.g. `4h`, `4l`, `10j`) | Repeat motion `N` times (vim count prefix) | Table |
+| `Enter` | Open editor with UPDATE query for selected cell (save & quit to run) | Table |
 | `Ctrl+S` | Run query | Query box |
 
 The options bar at the bottom shows shortcuts for the currently focused pane (sidebar, filter, table, or query). When focus is clear, it shows `q` quit.

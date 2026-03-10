@@ -49,6 +49,23 @@ func (m Model) handleRowsLoaded(msg RowsLoadedMsg) (tea.Model, tea.Cmd) {
 	}
 	m.table.SetRows(dbRowsToTable(pr.Result.Rows))
 	m.applyViewState()
+	target := database.DatabaseTarget{Database: m.sidebar.EffectiveDB(), Table: m.sidebar.SelectedTable()}
+	return m, LoadTableConstraintsCmd(m.source, target)
+}
+
+// handleTableConstraintsLoaded stores primary key columns for the table so UPDATE-from-cell can build a safe WHERE.
+func (m Model) handleTableConstraintsLoaded(msg TableConstraintsLoadedMsg) (tea.Model, tea.Cmd) {
+	if msg.Err != nil {
+		return m, nil
+	}
+	m.tablePKTarget = msg.Target
+	m.tablePKColumns = nil
+	for _, c := range msg.Constraints {
+		if c.Type == "PRIMARY KEY" && len(c.Columns) > 0 {
+			m.tablePKColumns = append([]string(nil), c.Columns...)
+			break
+		}
+	}
 	return m, nil
 }
 
@@ -67,11 +84,13 @@ func (m Model) handleQueryExecuted(msg QueryExecutedMsg) (tea.Model, tea.Cmd) {
 	hasResultSet := len(msg.Result.Columns) > 0 || len(msg.Result.Rows) > 0
 	if hasResultSet {
 		m.resetPaging()
+		m.tablePKColumns = nil
+		m.tablePKTarget = database.DatabaseTarget{}
 		m.table.SetColumns(dbColumnsToTable(msg.Result.Columns))
 		m.table.SetRows(dbRowsToTable(msg.Result.Rows))
 		m.applyViewState()
 		cmd := m.statusbar.SetStatusWithTTL(
-			fmt.Sprintf(" Query ok: %d rows (%d affected)", len(msg.Result.Rows), msg.Result.RowsAffected),
+			fmt.Sprintf(" Query ok: %d row(s) returned", len(msg.Result.Rows)),
 			statusbar.Success,
 			3*time.Second,
 		)
@@ -93,6 +112,50 @@ func (m Model) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 	m.view.height = msg.Height
 	m.applyViewState()
 	return m, nil
+}
+
+// handleEditorQueryDone handles the EditorQueryMsg after the user closes the editor.
+// If the query is non-empty, it is run via the same path as the query box.
+func (m Model) handleEditorQueryDone(msg EditorQueryMsg) (tea.Model, tea.Cmd) {
+	if msg.Err != nil {
+		cmd := m.statusbar.SetStatusWithTTL(" Edit cancelled: "+msg.Err.Error(), statusbar.Warning, 3*time.Second)
+		return m, cmd
+	}
+	query := strings.TrimSpace(msg.Query)
+	if query == "" {
+		cmd := m.statusbar.SetStatusWithTTL(" Empty query", statusbar.Warning, 2*time.Second)
+		return m, cmd
+	}
+	if !m.HasConnection() {
+		cmd := m.statusbar.SetStatusWithTTL(" No active connection", statusbar.Warning, 2*time.Second)
+		return m, cmd
+	}
+	m.statusbar.SetStatus(" Running query...", statusbar.Info)
+	return m, RequestQueryRunCmd(query)
+}
+
+func (m Model) handleUpdateFromCell(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
+	if m.view.focus != FocusTable || msg.String() != "enter" {
+		return m, nil, false
+	}
+	db := m.sidebar.EffectiveDB()
+	tableName := m.sidebar.SelectedTable()
+	col, value, ok := m.table.ActiveCell()
+	if !ok || db == "" || tableName == "" {
+		return m, nil, false
+	}
+	activeRow, _ := m.table.ActiveRow()
+	colTypeByKey := make(map[string]string)
+	for _, c := range m.table.Columns() {
+		colTypeByKey[c.Key] = c.Type
+	}
+	var pkColumns []string
+	target := database.DatabaseTarget{Database: db, Table: tableName}
+	if target == m.tablePKTarget && len(m.tablePKColumns) > 0 {
+		pkColumns = m.tablePKColumns
+	}
+	q := BuildUpdateQueryFromCell(tableName, col.Key, col.Type, value, pkColumns, activeRow, colTypeByKey)
+	return m, OpenEditorWithQueryCmd(q), true
 }
 
 // handleKeyPress handles the KeyPressMsg and updates the focused component.
@@ -118,6 +181,9 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.applyViewState()
 		return m, nil
 	default:
+		if next, cmd, handled := m.handleUpdateFromCell(msg); handled {
+			return next, cmd
+		}
 		if next, cmd, handled := m.handleQueryShortcut(msg); handled {
 			return next, cmd
 		}
