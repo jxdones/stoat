@@ -122,6 +122,18 @@ func (m Model) RowCount() int {
 	return len(m.rows)
 }
 
+// Rows returns a copy of the current rows.
+func (m Model) Rows() []Row {
+	if len(m.rows) == 0 {
+		return nil
+	}
+	out := make([]Row, len(m.rows))
+	for i, r := range m.rows {
+		out[i] = maps.Clone(r)
+	}
+	return out
+}
+
 // ColumnCount returns the number of columns in the model.
 func (m Model) ColumnCount() int {
 	return len(m.columns)

@@ -10,6 +10,7 @@ import (
 	"github.com/jxdones/stoat/internal/database"
 	"github.com/jxdones/stoat/internal/ui/components/sidebar"
 	"github.com/jxdones/stoat/internal/ui/components/statusbar"
+	"github.com/jxdones/stoat/internal/ui/components/table"
 )
 
 // handleDatabasesLoaded handles the DatabasesLoadedMsg and updates the sidebar.
@@ -163,6 +164,8 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "ctrl+c":
 		return m, tea.Quit
+	case "ctrl+r":
+		return m.handleReload(msg)
 	case "q":
 		if m.view.focus == FocusNone {
 			return m, tea.Quit
@@ -180,7 +183,14 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.view.focus = FocusNone
 		m.applyViewState()
 		return m, nil
+	case "/":
+		m.view.focus = FocusFilterbox
+		m.applyViewState()
+		return m, nil
 	default:
+		if next, cmd, handled := m.handleApplyFilter(msg); handled {
+			return next, cmd
+		}
 		if next, cmd, handled := m.handleUpdateFromCell(msg); handled {
 			return next, cmd
 		}
@@ -311,4 +321,81 @@ func (m Model) handlePasteMsg(msg tea.PasteMsg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	}
 	return m, nil
+}
+
+// handleApplyFilter handles the apply filter shortcut key press.
+func (m Model) handleApplyFilter(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
+	if m.view.focus != FocusFilterbox || msg.String() != "enter" {
+		return m, nil, false
+	}
+	if !m.HasConnection() {
+		cmd := m.statusbar.SetStatusWithTTL(" No active connection", statusbar.Warning, 2*time.Second)
+		return m, cmd, true
+	}
+	db := m.sidebar.EffectiveDB()
+	tableName := m.sidebar.SelectedTable()
+	if db == "" || tableName == "" || tableName == "(none)" {
+		cmd := m.statusbar.SetStatusWithTTL(" No table selected", statusbar.Warning, 2*time.Second)
+		return m, cmd, true
+	}
+
+	expression := strings.TrimSpace(m.filterbox.Value())
+	m.view.focus = FocusTable
+	m.applyViewState()
+
+	if expression == "" {
+		m.resetPaging()
+		m.setPendingPageNav(pageNavNone)
+		m.paging.requestAfter = ""
+		target := database.DatabaseTarget{Database: db, Table: tableName}
+		page := database.PageRequest{Limit: DefaultPageLimit, After: ""}
+		return m, LoadTableRowsCmd(m.source, target, page), true
+	}
+
+	filtered := filterRowsByExpression(m.table.Rows(), m.table.Columns(), expression)
+	m.table.SetRows(filtered)
+	cmd := m.statusbar.SetStatusWithTTL(
+		fmt.Sprintf(" Filter: %d row(s) match", len(filtered)),
+		statusbar.Info,
+		2*time.Second,
+	)
+	return m, cmd, true
+}
+
+// handleReload handles the reload shortcut key press.
+func (m Model) handleReload(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	if msg.String() != "ctrl+r" {
+		return m, nil
+	}
+	db := m.sidebar.EffectiveDB()
+	tableName := m.sidebar.SelectedTable()
+	if db == "" || tableName == "" || tableName == "(none)" {
+		return m, nil
+	}
+	target := database.DatabaseTarget{Database: db, Table: tableName}
+	page := database.PageRequest{Limit: DefaultPageLimit, After: ""}
+	return m, LoadTableRowsCmd(m.source, target, page)
+}
+
+// filterRowsByExpression filters the rows by the expression.
+func filterRowsByExpression(rows []table.Row, columns []table.Column, expr string) []table.Row {
+	expr = strings.TrimSpace(expr)
+	if expr == "" {
+		return rows
+	}
+	needle := strings.ToLower(expr)
+	keys := make([]string, 0, len(columns))
+	for _, c := range columns {
+		keys = append(keys, c.Key)
+	}
+	filtered := make([]table.Row, 0, len(rows))
+	for _, r := range rows {
+		for _, k := range keys {
+			if strings.Contains(strings.ToLower(r[k]), needle) {
+				filtered = append(filtered, r)
+				break
+			}
+		}
+	}
+	return filtered
 }

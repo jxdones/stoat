@@ -55,9 +55,12 @@ make lint     # run golangci-lint
 | `q` | Quit (only when focus is clear) | Global |
 | `Esc` | Clear focus (then use `q` to quit) | Global |
 | `Tab` / `Shift+Tab` | Cycle focus forward/backward | Global |
+| `/` | Focus filter box | Global |
+| `Ctrl+R` | Reload current table (first page) | Global (when a table is selected) |
 | `h` `j` `k` `l` | Move cursor | Sidebar / Table |
 | `g` / `G` | Jump to top / bottom | Sidebar / Table |
 | `Enter` | Open selected table | Sidebar |
+| `Enter` | Apply filter to currently loaded rows (empty filter resets table) | Filter box |
 | `Ctrl+N` / `Ctrl+B` | Next / previous page | Table |
 | `N` + motion (e.g. `4h`, `4l`, `10j`) | Repeat motion `N` times (vim count prefix) | Table |
 | `Enter` | Open editor with UPDATE query for selected cell (save & quit to run) | Table |

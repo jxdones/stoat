@@ -275,6 +275,10 @@ func (m Model) statusBindings() []key.Binding {
 			key.WithHelp("shift+tab", "focus previous pane"),
 		),
 		key.NewBinding(
+			key.WithKeys("/"),
+			key.WithHelp("/", "focus filterbox"),
+		),
+		key.NewBinding(
 			key.WithKeys("esc"),
 			key.WithHelp("esc", "clear focus"),
 		),
