@@ -1,6 +1,8 @@
 package model
 
 import (
+	"time"
+
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/jxdones/stoat/internal/config"
@@ -178,6 +180,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleKeyPress(msg)
 	case tea.PasteMsg:
 		return m.handlePasteMsg(msg)
+	case CopyDoneMsg:
+		if msg.Err != nil {
+			cmd := m.statusbar.SetStatusWithTTL(" Copy failed: "+msg.Err.Error(), statusbar.Error, 2*time.Second)
+			return m, cmd
+		}
+		cmd := m.statusbar.SetStatusWithTTL(" Copied to clipboard", statusbar.Success, 2*time.Second)
+		return m, cmd
 	}
 	return m, nil
 }

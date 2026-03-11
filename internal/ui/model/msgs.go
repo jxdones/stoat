@@ -8,6 +8,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/atotto/clipboard"
 	"github.com/jxdones/stoat/internal/database"
 	"github.com/jxdones/stoat/internal/ui/datasource"
 )
@@ -58,6 +59,11 @@ type TableConstraintsLoadedMsg struct {
 	Target      database.DatabaseTarget
 	Constraints []database.Constraint
 	Err         error
+}
+
+// CopyDoneMsg is sent when the copy operation is done.
+type CopyDoneMsg struct {
+	Err error
 }
 
 // LoadDatabasesCmd returns a command that loads the list of databases from the
@@ -176,4 +182,12 @@ func OpenEditorWithQueryCmd(query string) tea.Cmd {
 		}
 		return EditorQueryMsg{Query: string(content), Err: nil}
 	})
+}
+
+// CopyToClipboardCmd returns a command that copies the given value to the clipboard.
+func CopyToClipboardCmd(value string) tea.Cmd {
+	return func() tea.Msg {
+		err := clipboard.WriteAll(value)
+		return CopyDoneMsg{Err: err}
+	}
 }

@@ -242,6 +242,10 @@ func HelpBindings() []key.Binding {
 			key.WithKeys("enter"),
 			key.WithHelp("enter", "edit cell"),
 		),
+		key.NewBinding(
+			key.WithKeys("y"),
+			key.WithHelp("y", "copy cell value"),
+		),
 	}
 }
 

@@ -12,7 +12,7 @@ import (
 )
 
 // keyMsg creates a tea.KeyPressMsg for testing. Supports named keys used by the table:
-// "up", "down", "left", "right", "home", "end", "enter", "space", "g", "G", "j", "k", "h", "l", and single runes (e.g. digits).
+// "up", "down", "left", "right", "home", "end", "enter", "space", "g", "G", "j", "k", "h", "l", "y", and single runes (e.g. digits).
 func keyMsg(s string) tea.KeyPressMsg {
 	code, text, _ := keyToCode(s)
 	return tea.KeyPressMsg(tea.Key{Code: code, Text: text, Mod: 0})
@@ -40,6 +40,8 @@ func keyToCode(s string) (code rune, text string, mod tea.KeyMod) {
 		return 'g', "g", 0
 	case "G":
 		return 'G', "G", 0
+	case "y":
+		return 'y', "y", 0
 	default:
 		if len(s) > 0 {
 			r, _ := utf8.DecodeRuneInString(s)
@@ -103,6 +105,11 @@ func Test_isDigitKey(t *testing.T) {
 		{
 			name: "up_arrow",
 			key:  "up",
+			want: false,
+		},
+		{
+			name: "y",
+			key:  "y",
 			want: false,
 		},
 	}

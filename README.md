@@ -5,7 +5,7 @@
 </p>
 </h1>
 
-A super light, terminal-native database client.
+<p align="center">A super light, terminal-native database client.</p>
 
 Built with [Bubbletea](https://github.com/charmbracelet/bubbletea), Stoat is for developers who want to inspect schemas, browse table data, and run SQL without leaving the keyboard.
 
@@ -66,6 +66,7 @@ make lint     # run golangci-lint
 | `Ctrl+N` / `Ctrl+B` | Next / previous page | Table |
 | `N` + motion (e.g. `4h`, `4l`, `10j`) | Repeat motion `N` times (vim count prefix) | Table |
 | `Enter` | Open editor with UPDATE query for selected cell (save & quit to run) | Table |
+| `y` | Copy value from active cell to clipboard | Table |
 | `Ctrl+S` | Run query | Query box |
 | `Ctrl+N` | Expand saved query (type `@Name` then Ctrl+N to insert) | Query box |
 

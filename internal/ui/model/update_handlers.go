@@ -203,6 +203,9 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		if next, cmd, handled := m.handleExpandSavedQuery(msg); handled {
 			return next, cmd
 		}
+		if next, cmd, handled := m.handleCopyCellValueFromTable(msg); handled {
+			return next, cmd
+		}
 		return m.handleUpdateFocused(msg)
 	}
 }
@@ -415,4 +418,18 @@ func filterRowsByExpression(rows []table.Row, columns []table.Column, expr strin
 		}
 	}
 	return filtered
+}
+
+// handleCopyCellValueFromTable handles the copy of active cell value from table shortcut key press.
+func (m Model) handleCopyCellValueFromTable(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
+	if msg.String() != "y" || m.view.focus != FocusTable {
+		return m, nil, false
+	}
+
+	_, cellValue, ok := m.table.ActiveCell()
+	if !ok {
+		return m, nil, false
+	}
+
+	return m, CopyToClipboardCmd(cellValue), true
 }
