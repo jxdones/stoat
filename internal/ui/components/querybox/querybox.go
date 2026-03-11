@@ -100,8 +100,13 @@ func (m *Model) AdvanceCursor(n int) {
 }
 
 // Update handles key messages and updates the model state.
+// We only intercept ctrl+k (clear); all other keys and messages go to the textarea.
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
+	if k, ok := msg.(tea.KeyPressMsg); ok && k.String() == "ctrl+k" {
+		m.input.SetValue("")
+		return m, nil
+	}
 	m.input, cmd = m.input.Update(msg)
 	return m, cmd
 }
@@ -123,6 +128,10 @@ func HelpBindings() []key.Binding {
 		key.NewBinding(
 			key.WithKeys("ctrl+n"),
 			key.WithHelp("ctrl+n", "expand saved query"),
+		),
+		key.NewBinding(
+			key.WithKeys("ctrl+k"),
+			key.WithHelp("ctrl+k", "clear query"),
 		),
 	}
 }

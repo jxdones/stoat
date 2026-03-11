@@ -43,6 +43,8 @@ func (m Model) handleRowsLoaded(msg RowsLoadedMsg) (tea.Model, tea.Cmd) {
 		cmd := m.statusbar.SetStatusWithTTL(" Rows: "+msg.Err.Error(), statusbar.Error, 4*time.Second)
 		return m, cmd
 	}
+	m.viewingQueryResult = false
+	m.queryResultPreview = ""
 	pr := msg.Result
 	m.applyPageResult(m.paging.requestAfter, pr.NextAfter, pr.HasMore)
 	if len(pr.Result.Columns) > 0 {
@@ -84,6 +86,8 @@ func (m Model) handleQueryExecuted(msg QueryExecutedMsg) (tea.Model, tea.Cmd) {
 
 	hasResultSet := len(msg.Result.Columns) > 0 || len(msg.Result.Rows) > 0
 	if hasResultSet {
+		m.viewingQueryResult = true
+		m.queryResultPreview = queryPreviewForHeader(msg.Query)
 		m.resetPaging()
 		m.tablePKColumns = nil
 		m.tablePKTarget = database.DatabaseTarget{}
@@ -432,4 +436,20 @@ func (m Model) handleCopyCellValueFromTable(msg tea.KeyPressMsg) (tea.Model, tea
 	}
 
 	return m, CopyToClipboardCmd(cellValue), true
+}
+
+// queryPreviewForHeader returns a one-line, truncated preview of the query for the header.
+func queryPreviewForHeader(query string) string {
+	const queryPreviewMaxLen = 52
+	line := strings.TrimSpace(query)
+	if line == "" {
+		return ""
+	}
+
+	fields := strings.Fields(line)
+	line = strings.Join(fields, " ")
+	if len(line) <= queryPreviewMaxLen {
+		return line
+	}
+	return line[:queryPreviewMaxLen-1] + "…"
 }

@@ -46,6 +46,9 @@ type Model struct {
 	// which table they belong to.
 	tablePKColumns []string
 	tablePKTarget  database.DatabaseTarget
+
+	viewingQueryResult bool // It's true when the table content is from a run query. 
+	queryResultPreview string // truncated one-line preview of the last run query for the header
 }
 
 // New creates a new root model with default component state.

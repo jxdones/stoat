@@ -40,6 +40,7 @@ type RowsLoadedMsg struct {
 type QueryExecutedMsg struct {
 	Result database.QueryResult
 	Err    error
+	Query  string
 }
 
 // QueryRunRequestedMsg is sent when the user requests to run a query.
@@ -126,7 +127,7 @@ func RunQueryCmd(source datasource.DataSource, query string) tea.Cmd {
 			return QueryExecutedMsg{Err: database.ErrNoConnection}
 		}
 		result, err := source.Query(context.Background(), query)
-		return QueryExecutedMsg{Result: result, Err: err}
+		return QueryExecutedMsg{Result: result, Err: err, Query: query}
 	}
 }
 

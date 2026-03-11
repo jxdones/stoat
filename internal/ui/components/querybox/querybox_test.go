@@ -311,18 +311,23 @@ func TestAdvanceCursor(t *testing.T) {
 func TestHelpBindings(t *testing.T) {
 	tests := []struct {
 		name     string
-		wantKey  string
+		wantKeys []string // any of these keys counts as a match (for bindings with multiple keys)
 		wantHelp string
 	}{
 		{
 			name:     "run_query_binding",
-			wantKey:  "ctrl+s",
+			wantKeys: []string{"ctrl+s"},
 			wantHelp: "run query",
 		},
 		{
 			name:     "expand_saved_query_binding",
-			wantKey:  "ctrl+n",
+			wantKeys: []string{"ctrl+n"},
 			wantHelp: "expand saved query",
+		},
+		{
+			name:     "clear_query_binding",
+			wantKeys: []string{"ctrl+k"},
+			wantHelp: "clear query",
 		},
 	}
 	for _, tt := range tests {
@@ -331,19 +336,35 @@ func TestHelpBindings(t *testing.T) {
 			if len(bindings) == 0 {
 				t.Fatal("HelpBindings() returned empty slice")
 			}
+			wantKeySet := make(map[string]bool)
+			for _, k := range tt.wantKeys {
+				wantKeySet[k] = true
+			}
 			var found bool
 			for _, b := range bindings {
 				h := b.Help()
-				if h.Key == tt.wantKey {
+				if wantKeySet[h.Key] {
 					found = true
 					if tt.wantHelp != "" && h.Desc != tt.wantHelp {
-						t.Errorf("binding %q Help().Desc = %q, want %q", tt.wantKey, h.Desc, tt.wantHelp)
+						t.Errorf("binding %q Help().Desc = %q, want %q", h.Key, h.Desc, tt.wantHelp)
 					}
+					break
+				}
+				for _, k := range b.Keys() {
+					if wantKeySet[k] {
+						found = true
+						if tt.wantHelp != "" && h.Desc != tt.wantHelp {
+							t.Errorf("binding keys %v Help().Desc = %q, want %q", b.Keys(), h.Desc, tt.wantHelp)
+						}
+						break
+					}
+				}
+				if found {
 					break
 				}
 			}
 			if !found {
-				t.Errorf("HelpBindings() should include key %q", tt.wantKey)
+				t.Errorf("HelpBindings() should include one of keys %q", tt.wantKeys)
 			}
 		})
 	}

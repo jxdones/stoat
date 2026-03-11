@@ -499,6 +499,54 @@ func TestQuery(t *testing.T) {
 			wantRowCount:     0,
 			wantRowsAffected: int64Ptr(1),
 		},
+		{
+			name: "group_by_with_aggregate",
+			setupDB: func(t *testing.T) *sql.DB {
+				db, err := sql.Open("sqlite3", ":memory:")
+				if err != nil {
+					t.Fatalf("open in-memory db: %v", err)
+				}
+				t.Cleanup(func() { _ = db.Close() })
+				_, err = db.ExecContext(ctx, "CREATE TABLE payment (customer_id INTEGER, amount REAL);")
+				if err != nil {
+					t.Fatalf("create table: %v", err)
+				}
+				_, err = db.ExecContext(ctx, "INSERT INTO payment (customer_id, amount) VALUES (1, 10.5), (1, 20), (2, 5);")
+				if err != nil {
+					t.Fatalf("insert: %v", err)
+				}
+				return db
+			},
+			query:           "SELECT customer_id, SUM(amount) AS total_spent FROM payment GROUP BY customer_id ORDER BY total_spent DESC",
+			wantErr:         false,
+			wantColumnCount: 2,
+			wantRowCount:    2,
+			checkFirstRow:   map[string]string{"customer_id": "1", "total_spent": "30.5"},
+		},
+		{
+			name: "group_by_with_trailing_semicolon",
+			setupDB: func(t *testing.T) *sql.DB {
+				db, err := sql.Open("sqlite3", ":memory:")
+				if err != nil {
+					t.Fatalf("open in-memory db: %v", err)
+				}
+				t.Cleanup(func() { _ = db.Close() })
+				_, err = db.ExecContext(ctx, "CREATE TABLE payment (customer_id INTEGER, amount REAL);")
+				if err != nil {
+					t.Fatalf("create table: %v", err)
+				}
+				_, err = db.ExecContext(ctx, "INSERT INTO payment (customer_id, amount) VALUES (1, 10.5), (1, 20);")
+				if err != nil {
+					t.Fatalf("insert: %v", err)
+				}
+				return db
+			},
+			query:           "SELECT customer_id, SUM(amount) AS total_spent FROM payment GROUP BY customer_id ORDER BY total_spent DESC LIMIT 10;",
+			wantErr:         false,
+			wantColumnCount: 2,
+			wantRowCount:    1,
+			checkFirstRow:   map[string]string{"customer_id": "1", "total_spent": "30.5"},
+		},
 	}
 
 	for _, tt := range tests {

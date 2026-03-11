@@ -118,12 +118,20 @@ func (m Model) renderHeader(width int) string {
 	table := m.sidebar.SelectedTable()
 
 	target := "No connection"
-	if db != "" {
+	if m.viewingQueryResult {
+		if m.queryResultPreview != "" {
+			target = m.queryResultPreview
+		} else {
+			target = "Query result"
+		}
+		if db != "" {
+			target = db + " — " + target
+		}
+	} else if db != "" {
 		target = db
-	}
-
-	if db != "" && table != "" && table != "(none)" {
-		target = db + "." + table
+		if table != "" && table != "(none)" {
+			target = db + "." + table
+		}
 	}
 
 	title := lipgloss.NewStyle().Foreground(theme.Current.TextAccent).Bold(true).Render(target)
