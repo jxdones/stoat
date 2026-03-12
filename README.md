@@ -3,15 +3,12 @@
     <img src="assets/stoat.png" alt="Stoat logo" width="150"/>
     <h2>Stoat</h2>
   </p>
-  </h1>
 
-  <p>A super light, terminal-native database client.</p>
+  <p>The database client for people who don't leave the terminal.</p>
 
   <p>
-    <img src="assets/stoat.gif" alt="Stoat logo" width="720"/>
+    <img src="assets/stoat.gif" alt="Stoat demo" width="720"/>
   </p>
-
-Stoat is for developers who want to inspect schemas, browse table data, and run SQL without leaving the keyboard. Built with [Bubbletea](https://github.com/charmbracelet/bubbletea),
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Go Version](https://img.shields.io/badge/go-1.25.5+-00ADD8.svg)
@@ -19,23 +16,30 @@ Stoat is for developers who want to inspect schemas, browse table data, and run 
 
 ## Why Stoat?
 
-Most database tools fall into two camps:
-- heavy GUI apps with slow startup and lots of chrome
-- raw CLIs (`psql`, `mysql`) that are great for scripts but rough for data browsing
+You're already in a shell. You need to check a table, inspect a schema, or run a quick query. Opening a GUI for that is friction you don't need.
 
-Stoat aims for a different path:
-- fast startup
-- keyboard-first navigation
-- a clean TUI optimized for inspection work
+Raw CLI clients like `psql` or `sqlite3` are great for scripts but rough for browsing data. You have no visual navigation, no schema overview, no easy paging.
 
-## Current status
+Stoat sits between those two extremes: a keyboard-driven TUI that gives you real database inspection without leaving your workflow.
 
-Stoat is early in development and currently focused on local SQLite workflows.
+Built for anyone who lives in the terminal and wants database access that doesn't interrupt their flow.
 
-## Features 
-- Browse databases
-- Run ad-hoc SQL from the query box
-- Navigate the UI with vim-style keys
+## Features
+
+- Schema exploration — browse columns, indexes, constraints, and foreign keys in dedicated tabs without writing `PRAGMA` or `\d`
+- Inline SQL — run ad-hoc queries from a built-in query box; save snippets you reuse often
+- Vim-style navigation — `hjkl`, `gg`/`G`, count prefixes (`10j`), all the muscle memory you already have
+- Edit in place — open an `UPDATE` query for any cell directly in your `$EDITOR`
+- Filter without SQL — narrow down loaded rows without rewriting your query
+- Themes — `default`, `dracula`, or `solarized`
+
+## Database support
+
+| Database | Status |
+|----------|--------|
+| SQLite | Supported |
+| PostgreSQL | Planned |
+| MariaDB | Planned |
 
 ## Installation
 
@@ -48,7 +52,7 @@ curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh
 To install a specific version:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh -s -- v0.2.1
+curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh -s -- v0.3.0
 ```
 
 The script uses `go install` and puts the `stoat` binary in **$GOBIN** (default `$HOME/go/bin`). Ensure that directory is in your `PATH`.
@@ -74,7 +78,7 @@ Then add `$HOME/.local/bin` to your `PATH` if needed.
 stoat --db path/to/database.sqlite
 ```
 
-**Usage:** `stoat [--db path/to/database.sqlite]` — pass a SQLite file to open it on startup; otherwise start with no database.
+Pass a database file to open it on startup. If no file is given, Stoat starts without a database loaded.
 
 ### Development commands
 
@@ -98,23 +102,24 @@ make lint     # run golangci-lint
 | `g` / `G` | Jump to top / bottom | Sidebar / Table |
 | `Enter` | Open selected table | Sidebar |
 | `Enter` | Apply filter to currently loaded rows (empty filter resets table) | Filter box |
+| `Ctrl+1` – `Ctrl+5` | Switch tabs (Records, Columns, Constraints, Foreign Keys, Indexes) | Table |
 | `Ctrl+N` / `Ctrl+B` | Next / previous page | Table |
-| `N` + motion (e.g. `4h`, `4l`, `10j`) | Repeat motion `N` times (vim count prefix) | Table |
+| `N` + motion (e.g. `4h`, `4l`, `10j`) | Repeat motion N times (vim count prefix) | Table |
 | `Enter` | Open editor with UPDATE query for selected cell (save & quit to run) | Table |
 | `y` | Copy value from active cell to clipboard | Table |
 | `Ctrl+S` | Run query | Query box |
 | `Ctrl+N` | Expand saved query (type `@Name` then Ctrl+N to insert) | Query box |
 
-The options bar at the bottom shows shortcuts for the currently focused pane (sidebar, filter, table, or query). When focus is clear, it shows `q` quit.
+The options bar at the bottom shows shortcuts for the currently focused pane (sidebar, filter, table, or query). When focus is clear, it shows `q` to quit.
 
 ## Configuration
 
-Stoat reads configuration from **`~/.stoat/config.yaml`**. This file is created automatically on first run with default values.
+Stoat reads configuration from **`~/.stoat/config.yaml`**. This file is created automatically on first run.
 
 | Option | Description |
 |--------|-------------|
 | `theme` | UI theme: `default`, `dracula`, or `solarized`. |
-| `saved_queries` | List of named SQL snippets. In the query box, type `@Name` and press **Ctrl+N** to expand a saved query by name. |
+| `saved_queries` | Named SQL snippets. In the query box, type `@Name` and press **Ctrl+N** to expand. |
 
 Example:
 

@@ -10,6 +10,7 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 
+	"github.com/jxdones/stoat/internal/database"
 	"github.com/jxdones/stoat/internal/ui/common"
 	"github.com/jxdones/stoat/internal/ui/components/filterbox"
 	"github.com/jxdones/stoat/internal/ui/components/querybox"
@@ -28,8 +29,10 @@ const (
 	minTerminalHeight  = 24
 	minPaneInnerHeight = 1
 
-	noDataSourcePlaceholder = "No data source connected.\n\nPress Esc then q to exit, or Ctrl+C"
-	selectTablePlaceholder  = "Select a table from the sidebar and press Enter to view data."
+	noDataSourcePlaceholder      = "No data source connected.\n\nPress Esc then q to exit, or Ctrl+C"
+	selectTablePlaceholder       = "Select a table from the sidebar and press Enter to view data."
+	schemaNoTablePlaceholder     = "No table selected."
+	schemaQueryResultPlaceholder = "Schema not available for query results."
 )
 
 // View renders the UI layout.
@@ -74,13 +77,44 @@ func (m Model) renderBase(frame layout) string {
 	fixedHeight := lipgloss.Height(fixed)
 	tableOuterHeight := max(tablePaneMinOuterHeight, frame.rows.mainContent-fixedHeight)
 
+	activeTable := m.table
+	foreignKeysActive := false
+	schemaPlaceholder := ""
+	isSchemaTab := m.tabs.ActiveTab() != "Records"
+	if isSchemaTab {
+		if m.viewingQueryResult {
+			schemaPlaceholder = schemaQueryResultPlaceholder
+		} else if m.tablePKTarget == (database.DatabaseTarget{}) {
+			schemaPlaceholder = schemaNoTablePlaceholder
+		}
+	}
+	switch m.tabs.ActiveTab() {
+	case "Columns", "Constraints", "Indexes":
+		activeTable = m.schemaTable
+	case "Foreign Keys":
+		foreignKeysActive = true
+	}
+
 	var mainRaw string
 	for range maxTableShrinkPasses {
 		m.table.SetSize(
 			common.BoxInnerWidth(frame.columns.mainPane),
 			common.PaneInnerHeight(tableOuterHeight),
 		)
-		table := m.renderTable(frame.columns.mainPane, tableOuterHeight)
+
+		activeTable.SetSize(
+			common.BoxInnerWidth(frame.columns.mainPane),
+			common.PaneInnerHeight(tableOuterHeight),
+		)
+
+		var table string
+		if schemaPlaceholder != "" {
+			table = m.renderSchemaPlaceholder(frame.columns.mainPane, tableOuterHeight, schemaPlaceholder)
+		} else if foreignKeysActive {
+			table = m.renderForeignKeys(frame.columns.mainPane, tableOuterHeight)
+		} else {
+			table = m.renderTable(frame.columns.mainPane, tableOuterHeight, activeTable)
+		}
 		mainRaw = lipgloss.JoinVertical(lipgloss.Top, header, tabs, table, detail, query)
 
 		overflow := lipgloss.Height(mainRaw) - frame.rows.mainContent
@@ -95,7 +129,19 @@ func (m Model) renderBase(frame layout) string {
 				common.BoxInnerWidth(frame.columns.mainPane),
 				common.PaneInnerHeight(tableOuterHeight),
 			)
-			table := m.renderTable(frame.columns.mainPane, tableOuterHeight)
+
+			activeTable.SetSize(
+				common.BoxInnerWidth(frame.columns.mainPane),
+				common.PaneInnerHeight(tableOuterHeight),
+			)
+
+			if schemaPlaceholder != "" {
+				table = m.renderSchemaPlaceholder(frame.columns.mainPane, tableOuterHeight, schemaPlaceholder)
+			} else if foreignKeysActive {
+				table = m.renderForeignKeys(frame.columns.mainPane, tableOuterHeight)
+			} else {
+				table = m.renderTable(frame.columns.mainPane, tableOuterHeight, activeTable)
+			}
 			mainRaw = lipgloss.JoinVertical(lipgloss.Top, header, tabs, table, detail, query)
 			break
 		}
@@ -166,9 +212,9 @@ func (m Model) renderHeader(width int) string {
 // renderTable renders the table area with an outer pane border.
 // When there is no table data, it shows a placeholder: "No data source connected"
 // when disconnected, or "Select a table..." when connected but no table opened yet.
-func (m Model) renderTable(width, height int) string {
-	content := m.table.View().Content
-	if m.table.ColumnCount() == 0 && m.table.RowCount() == 0 {
+func (m Model) renderTable(width, height int, table table.Model) string {
+	content := table.View().Content
+	if table.ColumnCount() == 0 && table.RowCount() == 0 {
 		msg := noDataSourcePlaceholder
 		if m.HasConnection() {
 			msg = selectTablePlaceholder
@@ -221,6 +267,32 @@ func (m Model) renderOptions() string {
 		Padding(0, 1).
 		Render(content)
 	return helpLine
+}
+
+// renderSchemaPlaceholder renders a placeholder message inside the schema tab pane.
+func (m Model) renderSchemaPlaceholder(width, height int, msg string) string {
+	content := lipgloss.NewStyle().Foreground(theme.Current.TextMuted).Render(msg)
+	return common.BorderedPane(width, height, m.isFocused(FocusTable), common.FocusBorder(m.isFocused(FocusTable))).
+		Render(content)
+}
+
+// renderForeignKeys renders the foreign keys area of the UI layout.
+func (m Model) renderForeignKeys(width, height int) string {
+	content := []string{}
+	for _, fk := range m.tableSchema.foreignKeys {
+		indent := strings.Repeat(" ", len(fk.Column)+5)
+		line := fmt.Sprintf("%s → %s.%s\n", fk.Column, fk.RefTable, fk.RefColumn)
+		if fk.OnDeleteAction != "" {
+			line += fmt.Sprintf("%son DELETE: %s\n", indent, fk.OnDeleteAction)
+		}
+		if fk.OnUpdateAction != "" {
+			line += fmt.Sprintf("%son UPDATE: %s\n", indent, fk.OnUpdateAction)
+		}
+		line += "\n"
+		content = append(content, line)
+	}
+	return common.BorderedPane(width, height, m.isFocused(FocusTable), common.FocusBorder(m.isFocused(FocusTable))).
+		Render(strings.Join(content, "\n"))
 }
 
 // normalizeCanvas clips/pads content to an exact width x height rectangle.

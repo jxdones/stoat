@@ -17,4 +17,7 @@ vendor
 *.db
 *.sqlite
 
+# Ignore llm configuration files
+.claude
+
 stoat

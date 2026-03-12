@@ -27,9 +27,20 @@ type screenState struct {
 	compact bool
 }
 
+type tableSchema struct {
+	columns     []database.Column
+	constraints []database.Constraint
+	foreignKeys []database.ForeignKey
+	indexes     []database.Index
+}
+
 // Model is the root Bubble Tea model; it composes the sidebar, table, status bar, and other components.
 type Model struct {
+	// states
 	view screenState
+
+	// data
+	tableSchema tableSchema
 
 	source       datasource.DataSource
 	sidebar      sidebar.Model
@@ -38,6 +49,7 @@ type Model struct {
 	querybox     querybox.Model
 	filterbox    filterbox.Model
 	table        table.Model
+	schemaTable  table.Model // table for displaying the schema of the table
 	paging       pagingState
 	savedQueries []SavedQuery
 
@@ -174,6 +186,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleEditorQueryDone(msg)
 	case TableConstraintsLoadedMsg:
 		return m.handleTableConstraintsLoaded(msg)
+	case IndexesLoadedMsg:
+		return m.handleIndexesLoaded(msg)
+	case ForeignKeysLoadedMsg:
+		return m.handleForeignKeysLoaded(msg)
 	case tea.WindowSizeMsg:
 		return m.handleWindowSize(msg)
 	case statusbar.ExpiredMsg:

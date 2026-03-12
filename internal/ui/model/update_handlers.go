@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -49,11 +50,16 @@ func (m Model) handleRowsLoaded(msg RowsLoadedMsg) (tea.Model, tea.Cmd) {
 	m.applyPageResult(m.paging.requestAfter, pr.NextAfter, pr.HasMore)
 	if len(pr.Result.Columns) > 0 {
 		m.table.SetColumns(dbColumnsToTable(pr.Result.Columns))
+		m.tableSchema.columns = pr.Result.Columns
 	}
 	m.table.SetRows(dbRowsToTable(pr.Result.Rows))
 	m.applyViewState()
 	target := database.DatabaseTarget{Database: m.sidebar.EffectiveDB(), Table: m.sidebar.SelectedTable()}
-	return m, LoadTableConstraintsCmd(m.source, target)
+	return m, tea.Batch(
+		LoadTableConstraintsCmd(m.source, target),
+		LoadTableIndexesCmd(m.source, target),
+		LoadTableForeignKeysCmd(m.source, target),
+	)
 }
 
 // handleTableConstraintsLoaded stores primary key columns for the table so UPDATE-from-cell can build a safe WHERE.
@@ -62,12 +68,37 @@ func (m Model) handleTableConstraintsLoaded(msg TableConstraintsLoadedMsg) (tea.
 		return m, nil
 	}
 	m.tablePKTarget = msg.Target
+	m.tableSchema.constraints = msg.Constraints
 	m.tablePKColumns = nil
 	for _, c := range msg.Constraints {
 		if c.Type == "PRIMARY KEY" && len(c.Columns) > 0 {
 			m.tablePKColumns = append([]string(nil), c.Columns...)
 			break
 		}
+	}
+	return m, nil
+}
+
+// handleIndexesLoaded handles the IndexesLoadedMsg and updates the table schema.
+func (m Model) handleIndexesLoaded(msg IndexesLoadedMsg) (tea.Model, tea.Cmd) {
+	if msg.Err != nil {
+		return m, nil
+	}
+	target := database.DatabaseTarget{Database: m.sidebar.EffectiveDB(), Table: m.sidebar.SelectedTable()}
+	if msg.Target == target {
+		m.tableSchema.indexes = msg.Indexes
+	}
+	return m, nil
+}
+
+// handleForeignKeysLoaded handles the ForeignKeysLoadedMsg and updates the table schema.
+func (m Model) handleForeignKeysLoaded(msg ForeignKeysLoadedMsg) (tea.Model, tea.Cmd) {
+	if msg.Err != nil {
+		return m, nil
+	}
+	target := database.DatabaseTarget{Database: m.sidebar.EffectiveDB(), Table: m.sidebar.SelectedTable()}
+	if msg.Target == target {
+		m.tableSchema.foreignKeys = msg.ForeignKeys
 	}
 	return m, nil
 }
@@ -197,6 +228,7 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	default:
 		handlers := []keyHandler{
 			m.handleApplyFilter,
+			m.handleTabSwitch,
 			m.handleUpdateFromCell,
 			m.handleQueryShortcut,
 			m.handlePagingShortcut,
@@ -308,6 +340,9 @@ func (m Model) handleUpdateFocused(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.resetPaging()
 			m.setPendingPageNav(pageNavNone)
 			m.paging.requestAfter = ""
+			m.tableSchema = tableSchema{}
+			m.tablePKColumns = nil
+			m.tablePKTarget = database.DatabaseTarget{}
 			target := database.DatabaseTarget{
 				Database: db,
 				Table:    tableName,
@@ -327,6 +362,11 @@ func (m Model) handleUpdateFocused(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.filterbox = next
 		return m, cmd
 	case FocusTable:
+		if m.tabs.ActiveTab() != "Records" && m.tabs.ActiveTab() != "Foreign Keys" {
+			next, cmd := m.schemaTable.Update(msg)
+			m.schemaTable = next
+			return m, cmd
+		}
 		next, cmd := m.table.Update(msg)
 		m.table = next
 		return m, cmd
@@ -434,6 +474,43 @@ func (m Model) handleCopyCellValueFromTable(msg tea.KeyPressMsg) (tea.Model, tea
 	}
 
 	return m, CopyToClipboardCmd(cellValue), true
+}
+
+func (m Model) handleTabSwitch(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
+	validKeys := []string{"ctrl+1", "ctrl+2", "ctrl+3", "ctrl+4", "ctrl+5"}
+	if !slices.Contains(validKeys, msg.String()) || m.view.focus != FocusTable {
+		return m, nil, false
+	}
+	var index int
+	switch msg.String() {
+	case "ctrl+1":
+		index = 0
+	case "ctrl+2":
+		index = 1
+	case "ctrl+3":
+		index = 2
+	case "ctrl+4":
+		index = 3
+	case "ctrl+5":
+		index = 4
+	default:
+		return m, nil, false
+	}
+
+	m.tabs.SetActive(index)
+	switch index {
+	case 1:
+		cols, rows := schemaColumnsToTable(m.tableSchema.columns)
+		m.schemaTable = table.New(cols, rows)
+	case 2:
+		cols, rows := schemaConstraintsToTable(m.tableSchema.constraints)
+		m.schemaTable = table.New(cols, rows)
+	case 3:
+		cols, rows := schemaIndexesToTable(m.tableSchema.indexes)
+		m.schemaTable = table.New(cols, rows)
+	}
+	m.applyViewState()
+	return m, nil, true
 }
 
 // queryPreviewForHeader returns a one-line, truncated preview of the query for the header.

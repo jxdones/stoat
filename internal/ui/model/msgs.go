@@ -62,6 +62,20 @@ type TableConstraintsLoadedMsg struct {
 	Err         error
 }
 
+// IndexesLoadedMsg is sent when indexes for a table have been loaded.
+type IndexesLoadedMsg struct {
+	Target  database.DatabaseTarget
+	Indexes []database.Index
+	Err     error
+}
+
+// ForeignKeysLoadedMsg is sent when foreign keys for a table have been loaded.
+type ForeignKeysLoadedMsg struct {
+	Target      database.DatabaseTarget
+	ForeignKeys []database.ForeignKey
+	Err         error
+}
+
 // CopyDoneMsg is sent when the copy operation is done.
 type CopyDoneMsg struct {
 	Err error
@@ -100,6 +114,28 @@ func LoadTableConstraintsCmd(source datasource.DataSource, target database.Datab
 		}
 		constraints, err := source.Constraints(context.Background(), target)
 		return TableConstraintsLoadedMsg{Target: target, Constraints: constraints, Err: err}
+	}
+}
+
+// LoadTableIndexesCmd returns a command that loads indexes for the given target. On completion it sends a IndexesLoadedMsg.
+func LoadTableIndexesCmd(source datasource.DataSource, target database.DatabaseTarget) tea.Cmd {
+	return func() tea.Msg {
+		if source == nil {
+			return IndexesLoadedMsg{Err: database.ErrNoConnection}
+		}
+		indexes, err := source.Indexes(context.Background(), target)
+		return IndexesLoadedMsg{Target: target, Indexes: indexes, Err: err}
+	}
+}
+
+// LoadTableForeignKeysCmd returns a command that loads foreign keys for the given target. On completion it sends a ForeignKeysLoadedMsg.
+func LoadTableForeignKeysCmd(source datasource.DataSource, target database.DatabaseTarget) tea.Cmd {
+	return func() tea.Msg {
+		if source == nil {
+			return ForeignKeysLoadedMsg{Err: database.ErrNoConnection}
+		}
+		foreignKeys, err := source.ForeignKeys(context.Background(), target)
+		return ForeignKeysLoadedMsg{Target: target, ForeignKeys: foreignKeys, Err: err}
 	}
 }
 

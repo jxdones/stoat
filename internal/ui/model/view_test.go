@@ -403,7 +403,7 @@ func TestRenderTable(t *testing.T) {
 			if tt.setupTable != nil {
 				tt.setupTable(&m)
 			}
-			got := m.renderTable(tt.width, tt.height)
+			got := m.renderTable(tt.width, tt.height, m.table)
 			if got == "" {
 				t.Error("renderTable() returned empty string")
 			}
