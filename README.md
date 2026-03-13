@@ -80,6 +80,13 @@ stoat --db path/to/database.sqlite
 
 Pass a database file to open it on startup. If no file is given, Stoat starts without a database loaded.
 
+### Docker
+
+```bash
+docker build -t stoat .
+docker run --rm -it -v "$(pwd)/data:/data" stoat --db /data/your.db
+```
+
 ### Development commands
 
 ```bash
