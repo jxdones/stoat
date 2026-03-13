@@ -1,0 +1,57 @@
+# Build output
+bin/
+*.test
+*.out
+coverage.*
+*.coverprofile
+profile.cov
+stoat
+
+# Dependency directories
+vendor/
+
+# Git files
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Documentation
+README.md
+CHANGELOG.md
+CONTRIBUTING.md
+LICENSE
+assets/
+*.md
+docs/
+
+# Development tools
+.golangci.yml
+Makefile
+docker-compose*.yml
+
+# Database files (local development)
+*.db
+*.sqlite
+
+# Test files
+*_test.go
+
+# Docker
+Dockerfile*
+.dockerignore

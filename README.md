@@ -91,6 +91,13 @@ brew install --cask stoat
 go install github.com/jxdones/stoat/cmd/stoat@latest
 ```
 
+**Docker:**
+
+```bash
+docker build -t stoat .
+docker run --rm -it -v "$(pwd)/data:/data" stoat --db /data/your.db
+```
+
 **From the repo root** (developers):
 
 ```bash
