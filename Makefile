@@ -20,12 +20,14 @@ lint:
 	$(LINTER) run ./...
 
 clean:
-	rm -rf bin
-	rm -f $(TARGET)-$(VERSION).tar.gz
+	rm -rf bin dist
 
 release: clean
-	$(GO) build -o bin/$(TARGET) cmd/$(TARGET)/main.go
-	tar -czvf $(TARGET)-$(VERSION).tar.gz bin/$(TARGET)
+	mkdir -p dist
+	GOOS=darwin  GOARCH=amd64 $(GO) build -ldflags="-s -w" -o dist/$(TARGET)-darwin-amd64   ./cmd/$(TARGET)
+	GOOS=darwin  GOARCH=arm64 $(GO) build -ldflags="-s -w" -o dist/$(TARGET)-darwin-arm64   ./cmd/$(TARGET)
+	GOOS=linux   GOARCH=amd64 $(GO) build -ldflags="-s -w" -o dist/$(TARGET)-linux-amd64    ./cmd/$(TARGET)
+	GOOS=linux   GOARCH=arm64 $(GO) build -ldflags="-s -w" -o dist/$(TARGET)-linux-arm64    ./cmd/$(TARGET)
 
 # Install to $GOBIN. Ensure $GOBIN is in your PATH.
 install:

@@ -20,4 +20,8 @@ vendor
 # Ignore llm configuration files
 .claude
 
+# Distribution files
+dist
+
+# Binary
 stoat
