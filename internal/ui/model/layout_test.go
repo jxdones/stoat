@@ -3,15 +3,15 @@ package model
 import "testing"
 
 func TestLayout_Smoke(t *testing.T) {
-	layout := computeLayout(80, 24, 2)
+	layout := computeLayout(80, 24, 2, mainDetailRowsNormal)
 	if layout.columns.leftPane != 18 {
 		t.Errorf("leftPane = %d, want 18", layout.columns.leftPane)
 	}
 }
 
 func TestComputeLayoutExpandedHelpShrinksTable(t *testing.T) {
-	collapsed := computeLayout(80, 24, 2)
-	expanded := computeLayout(80, 24, 6)
+	collapsed := computeLayout(80, 24, 2, mainDetailRowsNormal)
+	expanded := computeLayout(80, 24, 6, mainDetailRowsNormal)
 	if expanded.main.table >= collapsed.main.table {
 		t.Errorf("table = %d, want smaller than %d", expanded.main.table, collapsed.main.table)
 	}
@@ -148,7 +148,7 @@ func TestComputeMainSections(t *testing.T) {
 			wantSections: mainSections{
 				header: mainHeaderRows,
 				tabs:   mainTabsRows,
-				detail: mainDetailRows,
+				detail: mainDetailRowsNormal,
 				query:  mainQueryRows,
 				table:  8,
 			},
@@ -159,7 +159,7 @@ func TestComputeMainSections(t *testing.T) {
 			wantSections: mainSections{
 				header: mainHeaderRows,
 				tabs:   mainTabsRows,
-				detail: mainDetailRows,
+				detail: mainDetailRowsNormal,
 				query:  mainQueryRows,
 				table:  1,
 			},
@@ -170,7 +170,7 @@ func TestComputeMainSections(t *testing.T) {
 			wantSections: mainSections{
 				header: mainHeaderRows,
 				tabs:   mainTabsRows,
-				detail: mainDetailRows,
+				detail: mainDetailRowsNormal,
 				query:  2,
 				table:  1,
 			},
@@ -181,7 +181,7 @@ func TestComputeMainSections(t *testing.T) {
 			wantSections: mainSections{
 				header: 4,
 				tabs:   mainTabsRows,
-				detail: mainDetailRows,
+				detail: mainDetailRowsNormal,
 				query:  1,
 				table:  1,
 			},
@@ -192,7 +192,7 @@ func TestComputeMainSections(t *testing.T) {
 			wantSections: mainSections{
 				header: 1,
 				tabs:   mainTabsRows,
-				detail: mainDetailRows,
+				detail: mainDetailRowsNormal,
 				query:  1,
 				table:  1,
 			},
@@ -203,7 +203,7 @@ func TestComputeMainSections(t *testing.T) {
 			wantSections: mainSections{
 				header: 1,
 				tabs:   mainTabsRows,
-				detail: mainDetailRows,
+				detail: mainDetailRowsNormal,
 				query:  1,
 				table:  1,
 			},
@@ -211,7 +211,7 @@ func TestComputeMainSections(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := computeMainSections(tt.height)
+			got := computeMainSections(tt.height, mainDetailRowsNormal)
 			if got.header != tt.wantSections.header {
 				t.Errorf("header = %d, want %d", got.header, tt.wantSections.header)
 			}

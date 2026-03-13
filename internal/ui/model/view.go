@@ -13,6 +13,7 @@ import (
 
 	"github.com/jxdones/stoat/internal/database"
 	"github.com/jxdones/stoat/internal/ui/common"
+	"github.com/jxdones/stoat/internal/ui/components/editbox"
 	"github.com/jxdones/stoat/internal/ui/components/filterbox"
 	"github.com/jxdones/stoat/internal/ui/components/querybox"
 	"github.com/jxdones/stoat/internal/ui/components/shortcuts"
@@ -55,7 +56,7 @@ func (m Model) View() tea.View {
 		optionsHeight = 2
 	}
 
-	frame := computeLayout(m.view.width, m.view.height, optionsHeight)
+	frame := computeLayout(m.view.width, m.view.height, optionsHeight, m.detailRows())
 
 	base := normalizeCanvas(m.renderBase(frame), m.view.width, frame.rows.mainContent)
 	lines := []string{base}
@@ -237,6 +238,10 @@ func (m Model) renderTable(width, height int, table table.Model) string {
 
 // renderDetail renders the detail area of the UI layout.
 func (m Model) renderDetail(width int) string {
+	if m.inlineEditMode {
+		return m.renderDetailEdit(width)
+	}
+
 	line, col := m.table.CursorPosition()
 	column, value, ok := m.table.ActiveCell()
 
@@ -258,6 +263,24 @@ func (m Model) renderDetail(width int) string {
 	trimmed := ansi.Truncate(plain, max(0, width-2), "…")
 	return common.DividerTopRow(width, theme.Current.DividerBorder).
 		Render(lipgloss.NewStyle().Foreground(theme.Current.TextMuted).Render(trimmed))
+}
+
+// renderDetailEdit renders the detail area as an inline cell editor.
+func (m Model) renderDetailEdit(width int) string {
+	column, _, ok := m.table.ActiveCell()
+	if !ok {
+		return common.DividerTopRow(width, theme.Current.BorderFocused).Render("")
+	}
+
+	fieldType := column.Type
+	if strings.TrimSpace(fieldType) == "" {
+		fieldType = "text"
+	}
+
+	title := lipgloss.NewStyle().Foreground(theme.Current.TextAccent).Bold(true).
+		Render(fmt.Sprintf("EDIT · %s (%s)", column.Title, fieldType))
+	content := lipgloss.JoinVertical(lipgloss.Top, title, m.editbox.View().Content)
+	return common.DividerTopRow(width, theme.Current.BorderFocused).Render(content)
 }
 
 // renderStatus renders the status area of the UI layout.
@@ -300,6 +323,8 @@ func (m Model) renderOptions() string {
 	return helpLine
 }
 
+// expandedOptionsHeight returns the number of rows the expanded help area
+// needs given the current width and set of key bindings.
 func expandedOptionsHeight(width int, bindings [][]key.Binding) int {
 	helpModel := help.New()
 	helpModel.SetWidth(width)
@@ -399,6 +424,9 @@ func (m Model) fullHelpBindings() [][]key.Binding {
 	return [][]key.Binding{paneBindings, globalBindings}
 }
 
+// helpBindings returns the pane-specific and global key bindings for the
+// currently focused panel, used by both the collapsed shortcuts bar and the
+// expanded help view.
 func (m Model) helpBindings() (pane []key.Binding, global []key.Binding) {
 	globalBindings := []key.Binding{
 		key.NewBinding(
@@ -427,6 +455,12 @@ func (m Model) helpBindings() (pane []key.Binding, global []key.Binding) {
 			key.WithKeys("q"),
 			key.WithHelp("q", "quit"),
 		))
+	}
+
+	// While editing, only confirm/cancel are valid — suppress global bindings
+	// so the shortcuts bar doesn't show actions that are unavailable.
+	if m.inlineEditMode {
+		return editbox.HelpBindings(), nil
 	}
 
 	var paneBindings []key.Binding

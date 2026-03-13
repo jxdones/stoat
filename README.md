@@ -29,7 +29,7 @@ Built for anyone who lives in the terminal and wants database access that doesn'
 - Schema exploration — browse columns, indexes, constraints, and foreign keys in dedicated tabs without writing `PRAGMA` or `\d`
 - Inline SQL — run ad-hoc queries from a built-in query box; save snippets you reuse often
 - Vim-style navigation — `hjkl`, `gg`/`G`, count prefixes (`10j`), all the muscle memory you already have
-- Edit in place — open an `UPDATE` query for any cell directly in your `$EDITOR`
+- Edit in place — press `Enter` on any cell to edit its value inline; confirm with `Enter`, cancel with `Esc`
 - Filter without SQL — narrow down loaded rows without rewriting your query
 - Themes — `default`, `dracula`, or `solarized`
 
@@ -52,7 +52,7 @@ curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh
 To install a specific version:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh -s -- v0.3.0
+curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh -s -- v0.4.0
 ```
 
 The script uses `go install` and puts the `stoat` binary in **$GOBIN** (default `$HOME/go/bin`). Ensure that directory is in your `PATH`.
@@ -105,7 +105,9 @@ make lint     # run golangci-lint
 | `Ctrl+1` – `Ctrl+5` | Switch tabs (Records, Columns, Constraints, Foreign Keys, Indexes) | Table |
 | `Ctrl+N` / `Ctrl+B` | Next / previous page | Table |
 | `N` + motion (e.g. `4h`, `4l`, `10j`) | Repeat motion N times (vim count prefix) | Table |
-| `Enter` | Open editor with UPDATE query for selected cell (save & quit to run) | Table |
+| `Enter` | Enter inline edit mode for the selected cell | Table |
+| `Enter` | Confirm edit and run UPDATE | Edit mode |
+| `Esc` | Cancel edit | Edit mode |
 | `y` | Copy value from active cell to clipboard | Table |
 | `Ctrl+S` | Run query | Query box |
 | `Ctrl+N` | Expand saved query (type `@Name` then Ctrl+N to insert) | Query box |

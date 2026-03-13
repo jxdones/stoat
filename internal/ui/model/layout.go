@@ -11,12 +11,13 @@ const (
 	minHeightRow          = 1
 	paneGap               = 0
 
-	mainHeaderRows = 5
-	mainTabsRows   = 3
-	mainDetailRows = 1
-	mainQueryRows  = 3
-	minTableRows   = 1
-	minSectionRows = 1
+	mainHeaderRows       = 5
+	mainTabsRows         = 3
+	mainDetailRowsNormal = 1
+	mainDetailRowsEdit   = 3
+	mainQueryRows        = 3
+	minTableRows         = 1
+	minSectionRows       = 1
 )
 
 // layoutColumns represents the two primary panes in the UI layout.
@@ -99,11 +100,11 @@ func computeRows(height, optionsHeight int) layoutRows {
 }
 
 // computeMainSections derives heights for main-pane sections.
-func computeMainSections(height int) mainSections {
+func computeMainSections(height, detailRows int) mainSections {
 	sections := mainSections{
 		header: mainHeaderRows,
 		tabs:   mainTabsRows,
-		detail: mainDetailRows,
+		detail: detailRows,
 		query:  mainQueryRows,
 	}
 
@@ -133,10 +134,10 @@ func computeMainSections(height int) mainSections {
 }
 
 // computeLayout computes the full frame layout for the current terminal size.
-func computeLayout(width, height, optionsHeight int) layout {
+func computeLayout(width, height, optionsHeight, detailRows int) layout {
 	cols := computeColumns(width)
 	rows := computeRows(height, optionsHeight)
-	main := computeMainSections(rows.mainContent)
+	main := computeMainSections(rows.mainContent, detailRows)
 	return layout{
 		columns: cols,
 		rows:    rows,

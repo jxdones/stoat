@@ -133,13 +133,26 @@ func (m Model) handleQueryExecuted(msg QueryExecutedMsg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	}
 
-	// DML with no result set: show affected count only; table stays as-is.
-	m.applyViewState()
-	return m, m.statusbar.SetStatusWithTTL(
+	// DML with no result set: show affected count; reload the table if the
+	// query came from an inline edit so the new value is visible immediately.
+	statusCmd := m.statusbar.SetStatusWithTTL(
 		fmt.Sprintf(" Query ok: %d row(s) affected", msg.Result.RowsAffected),
 		statusbar.Success,
 		3*time.Second,
 	)
+	if m.pendingTableReload {
+		m.pendingTableReload = false
+		db := m.sidebar.EffectiveDB()
+		tableName := m.sidebar.SelectedTable()
+		if db != "" && tableName != "" {
+			target := database.DatabaseTarget{Database: db, Table: tableName}
+			page := database.PageRequest{Limit: DefaultPageLimit, After: m.paging.requestAfter}
+			m.applyViewState()
+			return m, tea.Batch(statusCmd, LoadTableRowsCmd(m.source, target, page))
+		}
+	}
+	m.applyViewState()
+	return m, statusCmd
 }
 
 // handleWindowSize handles the WindowSizeMsg and updates the view state.
@@ -170,15 +183,47 @@ func (m Model) handleEditorQueryDone(msg EditorQueryMsg) (tea.Model, tea.Cmd) {
 	return m, RequestQueryRunCmd(query)
 }
 
+// handleUpdateFromCell handles the update from cell key press.
 func (m Model) handleUpdateFromCell(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
 	if m.view.focus != FocusTable || msg.String() != "enter" {
 		return m, nil, false
 	}
+	if m.tabs.ActiveTab() != "Records" {
+		return m, nil, false
+	}
+	if m.viewingQueryResult {
+		return m, nil, false
+	}
 	db := m.sidebar.EffectiveDB()
 	tableName := m.sidebar.SelectedTable()
-	col, value, ok := m.table.ActiveCell()
+	_, value, ok := m.table.ActiveCell()
 	if !ok || db == "" || tableName == "" {
 		return m, nil, false
+	}
+	m.inlineEditMode = true
+	m.editbox.SetValue(value)
+	m.applyViewState()
+	return m, nil, true
+}
+
+// handleInlineEditConfirm handles the inline edit confirm key press.
+// It runs the update query and reloads the table if the query was successful.
+func (m Model) handleInlineEditConfirm(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
+	if !m.inlineEditMode || msg.String() != "enter" {
+		return m, nil, false
+	}
+	newValue := m.editbox.Value()
+	m.inlineEditMode = false
+	m.applyViewState()
+
+	db := m.sidebar.EffectiveDB()
+	tableName := m.sidebar.SelectedTable()
+	col, oldValue, ok := m.table.ActiveCell()
+	if !ok || db == "" || tableName == "" {
+		return m, nil, true
+	}
+	if newValue == oldValue {
+		return m, nil, true
 	}
 	activeRow, _ := m.table.ActiveRow()
 	colTypeByKey := make(map[string]string)
@@ -190,15 +235,35 @@ func (m Model) handleUpdateFromCell(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bo
 	if target == m.tablePKTarget && len(m.tablePKColumns) > 0 {
 		pkColumns = m.tablePKColumns
 	}
-	q := BuildUpdateQueryFromCell(tableName, col.Key, col.Type, value, pkColumns, activeRow, colTypeByKey)
-	return m, OpenEditorWithQueryCmd(q), true
+	q := BuildUpdateQueryFromCell(tableName, col.Key, col.Type, newValue, pkColumns, activeRow, colTypeByKey)
+	m.pendingTableReload = true
+	m.statusbar.SetStatus(" Running update...", statusbar.Info)
+	return m, RequestQueryRunCmd(q), true
 }
 
 // keyHandler is a function that handles a key press and returns whether it was handled.
 type keyHandler func(tea.KeyPressMsg) (tea.Model, tea.Cmd, bool)
 
+// handleKeyPressInEditMode handles key events while inline edit mode is active.
+// Only esc (cancel), enter (confirm), and raw text input are processed —
+// all global navigation shortcuts are suppressed so keystrokes reach the input.
+func (m Model) handleKeyPressInEditMode(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	if msg.String() == "esc" {
+		m.inlineEditMode = false
+		m.applyViewState()
+		return m, nil
+	}
+	if next, cmd, handled := m.handleInlineEditConfirm(msg); handled {
+		return next, cmd
+	}
+	return m.handleUpdateFocused(msg)
+}
+
 // handleKeyPress handles the KeyPressMsg and updates the focused component.
 func (m Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	if m.inlineEditMode {
+		return m.handleKeyPressInEditMode(msg)
+	}
 	switch msg.String() {
 	case "ctrl+c":
 		return m, tea.Quit
@@ -367,6 +432,11 @@ func (m Model) handleUpdateFocused(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.filterbox = next
 		return m, cmd
 	case FocusTable:
+		if m.inlineEditMode {
+			next, cmd := m.editbox.Update(msg)
+			m.editbox = next
+			return m, cmd
+		}
 		if m.tabs.ActiveTab() != "Records" && m.tabs.ActiveTab() != "Foreign Keys" {
 			next, cmd := m.schemaTable.Update(msg)
 			m.schemaTable = next
@@ -481,6 +551,7 @@ func (m Model) handleCopyCellValueFromTable(msg tea.KeyPressMsg) (tea.Model, tea
 	return m, CopyToClipboardCmd(cellValue), true
 }
 
+// handleTabSwitch handles the tab switch shortcut key press.
 func (m Model) handleTabSwitch(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
 	validKeys := []string{"ctrl+1", "ctrl+2", "ctrl+3", "ctrl+4", "ctrl+5"}
 	if !slices.Contains(validKeys, msg.String()) || m.view.focus != FocusTable {

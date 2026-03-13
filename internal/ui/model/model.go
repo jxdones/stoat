@@ -8,6 +8,7 @@ import (
 	"github.com/jxdones/stoat/internal/config"
 	"github.com/jxdones/stoat/internal/database"
 	"github.com/jxdones/stoat/internal/ui/common"
+	"github.com/jxdones/stoat/internal/ui/components/editbox"
 	"github.com/jxdones/stoat/internal/ui/components/filterbox"
 	"github.com/jxdones/stoat/internal/ui/components/querybox"
 	"github.com/jxdones/stoat/internal/ui/components/sidebar"
@@ -40,6 +41,8 @@ type Model struct {
 	view               screenState
 	viewingQueryResult bool // It's true when the table content is from a run query.
 	helpExpanded       bool // It's true when the help is expanded.
+	inlineEditMode     bool
+	pendingTableReload bool
 
 	// data
 	tableSchema tableSchema
@@ -51,6 +54,7 @@ type Model struct {
 	querybox     querybox.Model
 	filterbox    filterbox.Model
 	table        table.Model
+	editbox      editbox.Model
 	schemaTable  table.Model // table for displaying the schema of the table
 	paging       pagingState
 	savedQueries []SavedQuery
@@ -64,9 +68,18 @@ type Model struct {
 	queryResultPreview string // truncated one-line preview of the last run query for the header
 }
 
+// detailRows returns the number of rows the detail section should occupy.
+func (m Model) detailRows() int {
+	if m.inlineEditMode {
+		return mainDetailRowsEdit
+	}
+	return mainDetailRowsNormal
+}
+
 // New creates a new root model with default component state.
 func New() Model {
 	m := Model{
+		editbox:   editbox.New(),
 		sidebar:   sidebar.New(nil, nil),
 		statusbar: statusbar.New(),
 		filterbox: filterbox.New(),
@@ -118,7 +131,7 @@ func (m *Model) applyViewState() {
 	} else {
 		optionsHeight = 2
 	}
-	frame := computeLayout(m.view.width, m.view.height, optionsHeight)
+	frame := computeLayout(m.view.width, m.view.height, optionsHeight, m.detailRows())
 
 	m.view.compact = m.view.width < 80 || m.view.height < 24
 	if m.view.compact || frame.rows.mainContent <= 0 {
@@ -145,6 +158,13 @@ func (m *Model) applyViewState() {
 		m.filterbox.Focus()
 	} else {
 		m.filterbox.Blur()
+	}
+
+	m.editbox.SetWidth(common.BoxInnerWidth(frame.columns.mainPane))
+	if m.inlineEditMode {
+		m.editbox.Focus()
+	} else {
+		m.editbox.Blur()
 	}
 
 	m.table.SetSize(
