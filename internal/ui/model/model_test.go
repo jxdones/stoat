@@ -29,6 +29,8 @@ func keyMsg(s string) tea.KeyPressMsg {
 		return tea.KeyPressMsg(tea.Key{Code: 's', Mod: tea.ModCtrl})
 	case "enter":
 		return tea.KeyPressMsg(tea.Key{Code: tea.KeyEnter})
+	case "?":
+		return tea.KeyPressMsg(tea.Key{Code: '?', Text: "?"})
 	default:
 		return tea.KeyPressMsg(tea.Key{Code: rune(s[0]), Text: s})
 	}

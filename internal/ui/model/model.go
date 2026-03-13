@@ -37,7 +37,9 @@ type tableSchema struct {
 // Model is the root Bubble Tea model; it composes the sidebar, table, status bar, and other components.
 type Model struct {
 	// states
-	view screenState
+	view               screenState
+	viewingQueryResult bool // It's true when the table content is from a run query.
+	helpExpanded       bool // It's true when the help is expanded.
 
 	// data
 	tableSchema tableSchema
@@ -59,7 +61,6 @@ type Model struct {
 	tablePKColumns []string
 	tablePKTarget  database.DatabaseTarget
 
-	viewingQueryResult bool   // It's true when the table content is from a run query.
 	queryResultPreview string // truncated one-line preview of the last run query for the header
 }
 
@@ -111,7 +112,13 @@ func (m Model) HasConnection() bool {
 
 // applyViewState updates the view state based on the current terminal size.
 func (m *Model) applyViewState() {
-	frame := computeLayout(m.view.width, m.view.height)
+	var optionsHeight int
+	if m.helpExpanded {
+		optionsHeight = expandedOptionsHeight(m.view.width, m.fullHelpBindings())
+	} else {
+		optionsHeight = 2
+	}
+	frame := computeLayout(m.view.width, m.view.height, optionsHeight)
 
 	m.view.compact = m.view.width < 80 || m.view.height < 24
 	if m.view.compact || frame.rows.mainContent <= 0 {

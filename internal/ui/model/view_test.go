@@ -4,7 +4,9 @@ import (
 	"strings"
 	"testing"
 
+	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/key"
+	"charm.land/lipgloss/v2"
 	"github.com/jxdones/stoat/internal/ui/components/table"
 )
 
@@ -68,22 +70,22 @@ func TestRenderBase(t *testing.T) {
 	}{
 		{
 			name:      "zero_main_content_returns_empty",
-			frame:     computeLayout(80, 1),
+			frame:     computeLayout(80, 1, 2),
 			wantEmpty: true,
 		},
 		{
 			name:         "normal_frame_returns_base_with_header_and_placeholder",
-			frame:        computeLayout(80, 24),
+			frame:        computeLayout(80, 24, 2),
 			wantContains: []string{"No connection", "Filter:", "No data source"},
 		},
 		{
 			name:         "narrow_width_base_still_has_header",
-			frame:        computeLayout(50, 20),
+			frame:        computeLayout(50, 20, 2),
 			wantContains: []string{"No connection", "Filter:"},
 		},
 		{
 			name:         "small_height_base_has_table_placeholder",
-			frame:        computeLayout(80, 15),
+			frame:        computeLayout(80, 15, 2),
 			wantContains: []string{"No connection", "No data source"},
 		},
 	}
@@ -548,4 +550,49 @@ func assertBindingExists(t *testing.T, bindings []key.Binding, keyName, desc str
 		return
 	}
 	t.Fatalf("expected binding %q not found", keyName)
+}
+
+func TestExpandedOptionsHeight(t *testing.T) {
+	tests := []struct {
+		name     string
+		width    int
+		bindings [][]key.Binding
+	}{
+		{
+			name:  "expanded_help_height_with_two_bindings",
+			width: 100,
+			bindings: [][]key.Binding{
+				{key.NewBinding(key.WithKeys("j"), key.WithHelp("j", "down"))},
+				{key.NewBinding(key.WithKeys("k"), key.WithHelp("k", "up"))},
+			},
+		},
+		{
+			name:  "expanded_help_height_with_three_bindings",
+			width: 100,
+			bindings: [][]key.Binding{
+				{key.NewBinding(key.WithKeys("j"), key.WithHelp("j", "down"))},
+				{key.NewBinding(key.WithKeys("k"), key.WithHelp("k", "up"))},
+				{key.NewBinding(key.WithKeys("l"), key.WithHelp("l", "right"))},
+			},
+		},
+		{
+			name:  "expanded_help_height_with_four_bindings",
+			width: 100,
+			bindings: [][]key.Binding{
+				{key.NewBinding(key.WithKeys("j"), key.WithHelp("j", "down"))},
+				{key.NewBinding(key.WithKeys("k"), key.WithHelp("k", "up"))},
+				{key.NewBinding(key.WithKeys("l"), key.WithHelp("l", "right"))},
+				{key.NewBinding(key.WithKeys(";"), key.WithHelp(";", "toggle help"))},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			want := lipgloss.Height(help.New().FullHelpView(tt.bindings)) + helpBorderHeight + helpTitleHeight
+			got := expandedOptionsHeight(tt.width, tt.bindings)
+			if got != want {
+				t.Errorf("expandedOptionsHeight(%d, %v) = %d, want %d", tt.width, tt.bindings, got, want)
+			}
+		})
+	}
 }

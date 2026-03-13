@@ -3,9 +3,17 @@ package model
 import "testing"
 
 func TestLayout_Smoke(t *testing.T) {
-	layout := computeLayout(80, 24)
+	layout := computeLayout(80, 24, 2)
 	if layout.columns.leftPane != 18 {
 		t.Errorf("leftPane = %d, want 18", layout.columns.leftPane)
+	}
+}
+
+func TestComputeLayoutExpandedHelpShrinksTable(t *testing.T) {
+	collapsed := computeLayout(80, 24, 2)
+	expanded := computeLayout(80, 24, 6)
+	if expanded.main.table >= collapsed.main.table {
+		t.Errorf("table = %d, want smaller than %d", expanded.main.table, collapsed.main.table)
 	}
 }
 
@@ -114,7 +122,7 @@ func TestComputeRows(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rows := computeRows(tt.height)
+			rows := computeRows(tt.height, 2)
 			if rows.mainContent != tt.wantRows.mainContent {
 				t.Errorf("mainContent = %d, want %d", rows.mainContent, tt.wantRows.mainContent)
 			}

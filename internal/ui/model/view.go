@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -28,6 +29,8 @@ const (
 	minTerminalWidth   = 80
 	minTerminalHeight  = 24
 	minPaneInnerHeight = 1
+	helpBorderHeight   = 1
+	helpTitleHeight    = 1
 
 	noDataSourcePlaceholder      = "No data source connected.\n\nPress Esc then q to exit, or Ctrl+C"
 	selectTablePlaceholder       = "Select a table from the sidebar and press Enter to view data."
@@ -45,7 +48,14 @@ func (m Model) View() tea.View {
 		return v
 	}
 
-	frame := computeLayout(m.view.width, m.view.height)
+	var optionsHeight int
+	if m.helpExpanded {
+		optionsHeight = expandedOptionsHeight(m.view.width, m.fullHelpBindings())
+	} else {
+		optionsHeight = 2
+	}
+
+	frame := computeLayout(m.view.width, m.view.height, optionsHeight)
 
 	base := normalizeCanvas(m.renderBase(frame), m.view.width, frame.rows.mainContent)
 	lines := []string{base}
@@ -258,7 +268,28 @@ func (m Model) renderStatus() string {
 // renderOptions renders the options area of the UI layout.
 func (m Model) renderOptions() string {
 	outerWidth := max(minRenderWidth, m.view.width)
-	content := shortcuts.RenderShortcuts(outerWidth, m.statusBindings())
+
+	content := ""
+	if m.helpExpanded {
+		switch m.view.focus {
+		case FocusSidebar:
+			content += lipgloss.NewStyle().Foreground(theme.Current.TextAccent).Render("Sidebar") + "\n"
+		case FocusFilterbox:
+			content += lipgloss.NewStyle().Foreground(theme.Current.TextAccent).Render("Filterbox") + "\n"
+		case FocusTable:
+			content += lipgloss.NewStyle().Foreground(theme.Current.TextAccent).Render("Table") + "\n"
+		case FocusQuerybox:
+			content += lipgloss.NewStyle().Foreground(theme.Current.TextAccent).Render("Querybox") + "\n"
+		case FocusNone:
+			content += lipgloss.NewStyle().Foreground(theme.Current.TextAccent).Render("Global") + "\n"
+		}
+
+		h := help.New()
+		h.SetWidth(outerWidth)
+		content += h.FullHelpView(m.fullHelpBindings())
+	} else {
+		content += shortcuts.RenderShortcuts(outerWidth, m.statusBindings())
+	}
 	helpLine := lipgloss.NewStyle().
 		Width(outerWidth).
 		BorderTop(true).
@@ -267,6 +298,13 @@ func (m Model) renderOptions() string {
 		Padding(0, 1).
 		Render(content)
 	return helpLine
+}
+
+func expandedOptionsHeight(width int, bindings [][]key.Binding) int {
+	helpModel := help.New()
+	helpModel.SetWidth(width)
+	fullHelp := helpModel.FullHelpView(bindings)
+	return lipgloss.Height(fullHelp) + helpBorderHeight + helpTitleHeight
 }
 
 // renderSchemaPlaceholder renders a placeholder message inside the schema tab pane.
@@ -351,7 +389,22 @@ func (m Model) compactView() string {
 
 // statusBindings returns the key bindings for the status area.
 func (m Model) statusBindings() []key.Binding {
+	paneBindings, globalBindings := m.helpBindings()
+	return append(paneBindings, globalBindings...)
+}
+
+// fullHelpBindings returns the key bindings for the help area.
+func (m Model) fullHelpBindings() [][]key.Binding {
+	paneBindings, globalBindings := m.helpBindings()
+	return [][]key.Binding{paneBindings, globalBindings}
+}
+
+func (m Model) helpBindings() (pane []key.Binding, global []key.Binding) {
 	globalBindings := []key.Binding{
+		key.NewBinding(
+			key.WithKeys("?"),
+			key.WithHelp("?", "toggle help"),
+		),
 		key.NewBinding(
 			key.WithKeys("tab"),
 			key.WithHelp("tab", "focus panes"),
@@ -370,7 +423,7 @@ func (m Model) statusBindings() []key.Binding {
 		),
 	}
 	if m.view.focus == FocusNone {
-		return append(globalBindings, key.NewBinding(
+		globalBindings = append(globalBindings, key.NewBinding(
 			key.WithKeys("q"),
 			key.WithHelp("q", "quit"),
 		))
@@ -387,5 +440,6 @@ func (m Model) statusBindings() []key.Binding {
 	case FocusQuerybox:
 		paneBindings = querybox.HelpBindings()
 	}
-	return append(paneBindings, globalBindings...)
+
+	return paneBindings, globalBindings
 }

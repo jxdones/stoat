@@ -77,13 +77,13 @@ func computeColumns(width int) layoutColumns {
 }
 
 // computeRows computes the optimal layout rows for a given height.
-func computeRows(height int) layoutRows {
+func computeRows(height, optionsHeight int) layoutRows {
 	if height <= 0 {
 		return layoutRows{}
 	}
 
 	statusRow := minHeightRow
-	optionsRow := 2
+	optionsRow := optionsHeight
 	mainContent := height - statusRow - optionsRow
 
 	if mainContent < 1 {
@@ -133,9 +133,9 @@ func computeMainSections(height int) mainSections {
 }
 
 // computeLayout computes the full frame layout for the current terminal size.
-func computeLayout(width, height int) layout {
+func computeLayout(width, height, optionsHeight int) layout {
 	cols := computeColumns(width)
-	rows := computeRows(height)
+	rows := computeRows(height, optionsHeight)
 	main := computeMainSections(rows.mainContent)
 	return layout{
 		columns: cols,

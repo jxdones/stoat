@@ -219,10 +219,15 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case "esc":
 		m.view.focus = FocusNone
+		m.helpExpanded = false
 		m.applyViewState()
 		return m, nil
 	case "/":
 		m.view.focus = FocusFilterbox
+		m.applyViewState()
+		return m, nil
+	case "?":
+		m.helpExpanded = !m.helpExpanded
 		m.applyViewState()
 		return m, nil
 	default:
