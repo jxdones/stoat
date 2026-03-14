@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Open in `$EDITOR`** (`Ctrl+E`). Press `Ctrl+E` from anywhere to open your `$EDITOR` with a SQL comment template. Save and close to run the query immediately — useful for writing multi-line DDL or complex statements that don't fit the query box.
+- **Postgres integration tests** using `testcontainers-go`. A real Postgres instance is spun up in CI to test the full `Connection` interface: databases, tables, rows, indexes, constraints, and foreign keys.
 
 ## [0.5.0] - 2026-03-13
 

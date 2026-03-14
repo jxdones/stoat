@@ -21,3 +21,5 @@ jobs:
         run: make test 
       - name: Run Build
         run: make build
+      - name: Run Integration Tests
+        run: make test-integration

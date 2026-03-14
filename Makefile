@@ -5,13 +5,16 @@ GOFMT := gofmt
 LINTER := golangci-lint
 PREFIX ?= /usr/local
 
-.PHONY: build test fmt lint clean release install install-prefix
+.PHONY: build test test-integration fmt lint clean release install install-prefix
 
 build:
 	$(GO) build -o bin/$(TARGET) cmd/$(TARGET)/main.go
 
 test:
-	$(GO) test -v ./...
+	$(GO) test ./...
+
+test-integration:
+	TESTCONTAINERS_RYUK_DISABLED=true $(GO) test -count=1 -tags integration ./internal/database/integration/...
 
 fmt:
 	$(GOFMT) -s -w .
