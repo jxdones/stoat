@@ -7,6 +7,8 @@ builds:
     main: ./cmd/stoat
     env:
       - CGO_ENABLED=1
+      - ZIG_GLOBAL_CACHE_DIR=/tmp/zig-global-cache
+      - ZIG_LOCAL_CACHE_DIR=/tmp/zig-local-cache
     ldflags:
       - -s -w -X main.version={{.Version}}
     goos:
@@ -17,10 +19,13 @@ builds:
       - arm64
     overrides:
       - goos: linux
+        goarch: amd64
+        env:
+          - CC=zig cc -target x86_64-linux-gnu
+      - goos: linux
         goarch: arm64
         env:
-          - CGO_ENABLED=1
-          - CC=aarch64-linux-gnu-gcc
+          - CC=zig cc -target aarch64-linux-gnu
 
 archives:
   - formats: [tar.gz]
