@@ -1,0 +1,43 @@
+version: 2
+
+project_name: stoat
+
+builds:
+  - binary: stoat
+    main: ./cmd/stoat
+    env:
+      - CGO_ENABLED=1
+    ldflags:
+      - -s -w -X main.version={{.Version}}
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    overrides:
+      - goos: linux
+        goarch: arm64
+        env:
+          - CGO_ENABLED=1
+          - CC=aarch64-linux-gnu-gcc
+
+archives:
+  - formats: [tar.gz]
+    name_template: "stoat_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: checksums.txt
+
+brews:
+  - repository:
+      owner: jxdones
+      name: homebrew-stoat
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    homepage: "https://github.com/jxdones/stoat"
+    description: "Terminal-native SQLite and PostgreSQL TUI client"
+    license: "MIT"
+    install: |
+      bin.install "stoat"
+    test: |
+      system "#{bin}/stoat", "--version"

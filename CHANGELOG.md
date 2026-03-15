@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-03-15
+
+### Added
+
+- **Homebrew tap.** Install stoat via `brew tap jxdones/stoat && brew install stoat`.
+
+### Fixed
+
+- Release binaries for darwin were broken due to CGO cross-compilation being attempted from Linux. The release workflow now builds darwin targets natively on macOS and linux targets on Ubuntu. `make release` also now only builds for the current OS to avoid the same issue locally.
+
 ## [0.5.2] - 2026-03-14
 
 ### Added

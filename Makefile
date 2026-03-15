@@ -1,5 +1,5 @@
 TARGET := stoat
-VERSION := 0.5.2
+VERSION := 0.5.3
 GO := go
 GOFMT := gofmt
 LINTER := golangci-lint
@@ -27,12 +27,12 @@ lint:
 clean:
 	rm -rf bin dist
 
+GOOS := $(shell go env GOOS)
+
 release: clean
 	mkdir -p dist
-	GOOS=darwin  GOARCH=amd64 $(GO) build $(LDFLAGS) -o dist/$(TARGET)-darwin-amd64   ./cmd/$(TARGET)
-	GOOS=darwin  GOARCH=arm64 $(GO) build $(LDFLAGS) -o dist/$(TARGET)-darwin-arm64   ./cmd/$(TARGET)
-	GOOS=linux   GOARCH=amd64 $(GO) build $(LDFLAGS) -o dist/$(TARGET)-linux-amd64    ./cmd/$(TARGET)
-	GOOS=linux   GOARCH=arm64 $(GO) build $(LDFLAGS) -o dist/$(TARGET)-linux-arm64    ./cmd/$(TARGET)
+	GOARCH=amd64 $(GO) build $(LDFLAGS) -o dist/$(TARGET)-$(GOOS)-amd64 ./cmd/$(TARGET)
+	GOARCH=arm64 $(GO) build $(LDFLAGS) -o dist/$(TARGET)-$(GOOS)-arm64 ./cmd/$(TARGET)
 
 # Install to $GOBIN. Ensure $GOBIN is in your PATH.
 install:

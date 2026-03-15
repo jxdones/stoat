@@ -6,18 +6,63 @@ on:
       - 'v*'
 
 jobs:
+  build-darwin:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.1
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          args: build --split --clean
+        env:
+          GORELEASER_CURRENT_TAG: ${{ github.ref_name }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-darwin
+          path: dist/
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.1
+      - name: Install cross-compiler for linux/arm64
+        run: sudo apt-get install -y gcc-aarch64-linux-gnu
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          args: build --split --clean
+        env:
+          GORELEASER_CURRENT_TAG: ${{ github.ref_name }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-linux
+          path: dist/
+
   release:
+    needs: [build-darwin, build-linux]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
         with:
-          go-version: 1.26.1
-      - name: Build release binaries
-        run: make release
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
         with:
-          files: dist/*
+          pattern: dist-*
+          path: dist/
+          merge-multiple: true
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          args: release --merge
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}

@@ -62,7 +62,7 @@ Any provider that gives you a `postgres://` connection string works. Including A
 
 ## Installation
 
-**One-liner** (requires [Go](https://go.dev/dl/) installed):
+**One-liner:**
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh
@@ -71,10 +71,15 @@ curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh
 To install a specific version:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh -s -- v0.5.2
+curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh -s -- v0.5.3
 ```
 
-The script uses `go install` and puts the `stoat` binary in **$GOBIN** (default `$HOME/go/bin`). Ensure that directory is in your `PATH`.
+**Homebrew** (macOS):
+
+```bash
+brew tap jxdones/stoat
+brew install stoat
+```
 
 **From the repo root** (developers):
 
