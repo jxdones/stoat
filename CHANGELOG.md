@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-03-14
+
 ### Added
 
 - **Spinner in status bar.** Async operations (connecting, loading tables/rows, running queries) now show an animated spinner in the status bar, making it clear when work is in progress rather than displaying static text.
