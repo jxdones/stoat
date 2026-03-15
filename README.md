@@ -11,7 +11,7 @@
   </p>
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Go Version](https://img.shields.io/badge/go-1.25.5+-00ADD8.svg)
+![Go Version](https://img.shields.io/badge/go-1.26+-00ADD8.svg)
 </div>
 
 ## Why Stoat?
@@ -25,6 +25,20 @@ Stoat sits between those two extremes: a keyboard-driven TUI that gives you real
 Built for anyone who lives in the terminal and wants database access that doesn't interrupt their flow.
 
 Built with [Bubbletea](https://github.com/charmbracelet/bubbletea) by Charmbracelet.
+
+## Features
+
+- Schema exploration — browse columns, indexes, constraints, and foreign keys in dedicated tabs without writing `PRAGMA` or `\d`
+- Inline SQL — run ad-hoc queries from a built-in query box; save snippets you reuse often
+- Open in `$EDITOR` — press `Ctrl+E` to write multi-line SQL in your editor; saves and runs on close
+- Vim-style navigation — `hjkl`, `gg`/`G`, count prefixes (`10j`), all the muscle memory you already have
+- Edit in place — press `Enter` on any cell to edit its value inline; confirm with `Enter`, cancel with `Esc`
+- Filter without SQL — narrow down loaded rows without rewriting your query
+- Themes — `default`, `dracula`, or `solarized`
+
+## Database support
+
+SQLite and PostgreSQL are supported. MariaDB is planned.
 
 ## Works with hosted databases
 
@@ -46,23 +60,6 @@ stoat --dsn "postgres://[user]:[password]@[host].render.com:[port]/[dbname]?sslm
 
 Any provider that gives you a `postgres://` connection string works. Including AWS RDS, GCP Cloud SQL, and Azure Database for PostgreSQL.
 
-## Features
-
-- Schema exploration — browse columns, indexes, constraints, and foreign keys in dedicated tabs without writing `PRAGMA` or `\d`
-- Inline SQL — run ad-hoc queries from a built-in query box; save snippets you reuse often
-- Vim-style navigation — `hjkl`, `gg`/`G`, count prefixes (`10j`), all the muscle memory you already have
-- Edit in place — press `Enter` on any cell to edit its value inline; confirm with `Enter`, cancel with `Esc`
-- Filter without SQL — narrow down loaded rows without rewriting your query
-- Themes — `default`, `dracula`, or `solarized`
-
-## Database support
-
-| Database | Status |
-|----------|--------|
-| SQLite | Supported |
-| PostgreSQL | Supported |
-| MariaDB | Planned |
-
 ## Installation
 
 **One-liner** (requires [Go](https://go.dev/dl/) installed):
@@ -74,7 +71,7 @@ curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh
 To install a specific version:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh -s -- v0.5.1
+curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh -s -- v0.5.2
 ```
 
 The script uses `go install` and puts the `stoat` binary in **$GOBIN** (default `$HOME/go/bin`). Ensure that directory is in your `PATH`.
@@ -141,6 +138,7 @@ make lint     # run golangci-lint
 | `Enter` | Confirm edit and run UPDATE | Edit mode |
 | `Esc` | Cancel edit | Edit mode |
 | `y` | Copy value from active cell to clipboard | Table |
+| `Ctrl+E` | Open `$EDITOR` with a SQL template; save and close to run | Query box |
 | `Ctrl+S` | Run query | Query box |
 | `Ctrl+N` | Expand saved query (type `@Name` then Ctrl+N to insert) | Query box |
 | `Ctrl+L` | Clear query | Query box |
