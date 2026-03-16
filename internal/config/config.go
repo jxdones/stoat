@@ -14,10 +14,18 @@ type SavedQuery struct {
 	Query string `yaml:"query"`
 }
 
+// Connection is a database connection configuration.
+type Connection struct {
+	Name string `yaml:"name"`
+	Type string `yaml:"type"` // "sqlite" or "postgres"
+	DSN  string `yaml:"dsn"`  // postgres://... or /path/to/db.sqlite
+}
+
 // Config holds stoat configuration loaded from ~/.stoat/config.yaml.
 type Config struct {
 	Theme        string       `yaml:"theme"`
 	SavedQueries []SavedQuery `yaml:"saved_queries"`
+	Connections  []Connection `yaml:"connections"`
 }
 
 // ConfigDir returns the stoat config directory (e.g. ~/.stoat).

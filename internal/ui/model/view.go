@@ -19,6 +19,7 @@ import (
 	"github.com/jxdones/stoat/internal/ui/components/shortcuts"
 	"github.com/jxdones/stoat/internal/ui/components/sidebar"
 	"github.com/jxdones/stoat/internal/ui/components/table"
+	"github.com/jxdones/stoat/internal/ui/modal"
 	"github.com/jxdones/stoat/internal/ui/theme"
 )
 
@@ -32,6 +33,8 @@ const (
 	minPaneInnerHeight = 1
 	helpBorderHeight   = 1
 	helpTitleHeight    = 1
+
+	bottomChromeRows = 3 // status bar + shortcuts bar rows, excluded from modal vertical centering
 
 	noDataSourcePlaceholder      = "No data source connected.\n\nPress Esc then q to exit, or Ctrl+C"
 	selectTablePlaceholder       = "Select a table from the sidebar and press Enter to view data."
@@ -67,6 +70,9 @@ func (m Model) View() tea.View {
 	lines = append(lines, m.renderOptions())
 
 	full := normalizeCanvas(strings.Join(lines, "\n"), m.view.width, m.view.height)
+	if m.activeModal != modalNone {
+		full = m.renderModal(full)
+	}
 	v := tea.NewView(full)
 	v.AltScreen = true
 	return v
@@ -247,7 +253,7 @@ func (m Model) renderDetail(width int) string {
 
 	if !ok {
 		txt := lipgloss.NewStyle().Foreground(theme.Current.TextMuted).Render("Ln 0, Col 0 | field: - | type: - | value: -")
-		return common.DividerTopRow(width, theme.Current.DividerBorder).Render(txt)
+		return lipgloss.NewStyle().Width(common.ClampMin(width, 1)).Padding(0, 1).Render(txt)
 	}
 
 	fieldType := column.Type
@@ -261,7 +267,7 @@ func (m Model) renderDetail(width int) string {
 
 	plain := fmt.Sprintf("%s | field: %s | type: %s | value: %s", ansi.Strip(head), ansi.Strip(field), ansi.Strip(typ), value)
 	trimmed := ansi.Truncate(plain, max(0, width-2), "…")
-	return common.DividerTopRow(width, theme.Current.DividerBorder).
+	return lipgloss.NewStyle().Width(common.ClampMin(width, 1)).Padding(0, 1).
 		Render(lipgloss.NewStyle().Foreground(theme.Current.TextMuted).Render(trimmed))
 }
 
@@ -269,7 +275,7 @@ func (m Model) renderDetail(width int) string {
 func (m Model) renderDetailEdit(width int) string {
 	column, _, ok := m.table.ActiveCell()
 	if !ok {
-		return common.DividerTopRow(width, theme.Current.BorderFocused).Render("")
+		return lipgloss.NewStyle().Width(common.ClampMin(width, 1)).Padding(0, 1).Render("")
 	}
 
 	fieldType := column.Type
@@ -280,7 +286,7 @@ func (m Model) renderDetailEdit(width int) string {
 	title := lipgloss.NewStyle().Foreground(theme.Current.TextAccent).Bold(true).
 		Render(fmt.Sprintf("EDIT · %s (%s)", column.Title, fieldType))
 	content := lipgloss.JoinVertical(lipgloss.Top, title, m.editbox.View().Content)
-	return common.DividerTopRow(width, theme.Current.BorderFocused).Render(content)
+	return lipgloss.NewStyle().Width(common.ClampMin(width, 1)).Padding(0, 1).Render(content)
 }
 
 // renderStatus renders the status area of the UI layout.
@@ -321,6 +327,22 @@ func (m Model) renderOptions() string {
 		Padding(0, 1).
 		Render(content)
 	return helpLine
+}
+
+// renderModal renders the active modal centered over the base canvas.
+// The base content is dimmed around the modal to create depth.
+func (m Model) renderModal(base string) string {
+	var title, content string
+	var modalWidth int
+	switch m.activeModal {
+	case modalConnectionPicker:
+		title = "Connections"
+		content = m.connectionPicker.View()
+		modalWidth = 50
+	}
+
+	overlayStr := modal.Render(title, content, "j/k navigate · enter select · esc close", modalWidth)
+	return overlayAtCenter(base, overlayStr, m.view.width, m.view.height-bottomChromeRows)
 }
 
 // expandedOptionsHeight returns the number of rows the expanded help area
@@ -434,6 +456,10 @@ func (m Model) helpBindings() (pane []key.Binding, global []key.Binding) {
 			key.WithHelp("?", "toggle help"),
 		),
 		key.NewBinding(
+			key.WithKeys("c"),
+			key.WithHelp("c", "open connections"),
+		),
+		key.NewBinding(
 			key.WithKeys("ctrl+e"),
 			key.WithHelp("ctrl+e", "open editor"),
 		),
@@ -480,4 +506,74 @@ func (m Model) helpBindings() (pane []key.Binding, global []key.Binding) {
 	}
 
 	return paneBindings, globalBindings
+}
+
+// overlayAtCenter composites an overlay string centered over a base canvas.
+//
+// Terminals have no transparency, so dimming is faked by stripping ANSI codes
+// from the base and re-rendering each line with a faint/muted style. Lines that
+// fall behind the overlay are split at the overlay boundary: the left and right
+// segments are dimmed while the overlay content itself is inserted untouched in
+// the middle. This keeps the modal colors crisp while the rest recedes visually.
+func overlayAtCenter(base, overlay string, width, height int) string {
+	dimStyle := lipgloss.NewStyle().
+		Foreground(theme.Current.TextMuted).
+		Faint(true)
+
+	canvas := lipgloss.Place(width, height, lipgloss.Left, lipgloss.Top, base)
+	baseLines := strings.Split(canvas, "\n")
+	for i := range baseLines {
+		baseLines[i] = fitStyled(ansi.Strip(baseLines[i]), width)
+	}
+
+	overlayLinesRaw := strings.Split(overlay, "\n")
+	overlayWidth := 1
+	for _, ln := range overlayLinesRaw {
+		if w := ansi.StringWidth(ln); w > overlayWidth {
+			overlayWidth = w
+		}
+	}
+
+	x := (width - overlayWidth) / 2
+	y := (height - len(overlayLinesRaw)) / 2
+	if x < 0 {
+		x = 0
+	}
+	if y < 0 {
+		y = 0
+	}
+
+	overlayRows := make(map[int]struct{}, len(overlayLinesRaw))
+	for i, line := range overlayLinesRaw {
+		row := y + i
+		if row < 0 || row >= len(baseLines) {
+			continue
+		}
+		dst := []rune(baseLines[row])
+		prefixEnd := min(x, len(dst))
+		suffixStart := min(x+overlayWidth, len(dst))
+		prefix := string(dst[:prefixEnd])
+		suffix := string(dst[suffixStart:])
+		baseLines[row] = dimStyle.Render(prefix) + fitStyled(line, overlayWidth) + dimStyle.Render(suffix)
+		overlayRows[row] = struct{}{}
+	}
+
+	for i := range baseLines {
+		if _, ok := overlayRows[i]; !ok {
+			baseLines[i] = dimStyle.Render(baseLines[i])
+		}
+		baseLines[i] = fitStyled(baseLines[i], width)
+	}
+
+	return strings.Join(baseLines, "\n")
+}
+
+// fitStyled truncates or pads s to exactly width visible characters, preserving ANSI styles.
+func fitStyled(s string, width int) string {
+	out := ansi.Truncate(s, width, "")
+	w := ansi.StringWidth(out)
+	if w < width {
+		out += strings.Repeat(" ", width-w)
+	}
+	return out
 }

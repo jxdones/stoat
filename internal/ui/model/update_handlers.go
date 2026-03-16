@@ -10,6 +10,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/jxdones/stoat/internal/database"
+	"github.com/jxdones/stoat/internal/ui/components/connectionpicker"
 	"github.com/jxdones/stoat/internal/ui/components/sidebar"
 	"github.com/jxdones/stoat/internal/ui/components/statusbar"
 	"github.com/jxdones/stoat/internal/ui/components/table"
@@ -296,6 +297,11 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	if m.inlineEditMode {
 		return m.handleKeyPressInEditMode(msg)
 	}
+
+	if m.activeModal == modalConnectionPicker {
+		return m.handleKeyPressInConnectionPicker(msg)
+	}
+
 	switch msg.String() {
 	case "ctrl+c":
 		return m, tea.Quit
@@ -329,6 +335,12 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.helpExpanded = !m.helpExpanded
 		m.applyViewState()
 		return m, nil
+	case "c":
+		if m.view.focus == FocusNone {
+			m.OpenConnectionPicker()
+			return m, nil
+		}
+		return m.handleUpdateFocused(msg)
 	default:
 		handlers := []keyHandler{
 			m.handleApplyFilter,
@@ -678,6 +690,33 @@ func (m Model) handleOpenEditor() (tea.Model, tea.Cmd) {
 	}
 	template := "-- Write your SQL here, then save and close the editor to run it.\n\n"
 	return m, OpenEditorWithQueryCmd(template)
+}
+
+func (m Model) handleKeyPressInConnectionPicker(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	next, event := m.connectionPicker.Update(msg)
+	m.connectionPicker = next
+
+	switch event {
+	case connectionpicker.EventSelected:
+		selected := m.connectionPicker.Selected()
+		cfg := database.Config{Name: selected.Name}
+		switch database.DBMS(strings.ToLower(selected.Type)) {
+		case database.DBMSPostgres:
+			cfg.DBMS = database.DBMSPostgres
+			cfg.Values = map[string]string{"dsn": selected.DSN}
+		default:
+			cfg.DBMS = database.DBMSSQLite
+			cfg.Values = map[string]string{"path": selected.DSN}
+		}
+		m.SetPendingConfig(cfg)
+		m.view.focus = FocusSidebar
+		m.activeModal = modalNone
+		return m, func() tea.Msg { return ConnectingMsg{cfg: cfg} }
+	case connectionpicker.EventClosed:
+		m.activeModal = modalNone
+	}
+
+	return m, nil
 }
 
 // queryPreviewForHeader returns a one-line, truncated preview of the query for the header.

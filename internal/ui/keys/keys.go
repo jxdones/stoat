@@ -11,7 +11,8 @@ type KeyMap struct {
 	GotoTop    key.Binding
 	GotoBottom key.Binding
 
-	Enter key.Binding
+	Enter  key.Binding
+	Escape key.Binding
 }
 
 // DefaultKeyMap returns the default navigation keymap.
@@ -24,6 +25,7 @@ func DefaultKeyMap() KeyMap {
 		GotoTop:    key.NewBinding(key.WithKeys("home", "g"), key.WithHelp("g/home", "go to top")),
 		GotoBottom: key.NewBinding(key.WithKeys("end", "G"), key.WithHelp("G/end", "go to bottom")),
 		Enter:      key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "select")),
+		Escape:     key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "close")),
 	}
 }
 

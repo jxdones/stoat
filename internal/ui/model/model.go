@@ -9,6 +9,7 @@ import (
 	"github.com/jxdones/stoat/internal/config"
 	"github.com/jxdones/stoat/internal/database"
 	"github.com/jxdones/stoat/internal/ui/common"
+	"github.com/jxdones/stoat/internal/ui/components/connectionpicker"
 	"github.com/jxdones/stoat/internal/ui/components/editbox"
 	"github.com/jxdones/stoat/internal/ui/components/filterbox"
 	"github.com/jxdones/stoat/internal/ui/components/querybox"
@@ -29,6 +30,13 @@ type screenState struct {
 	compact bool
 }
 
+type activeModal int
+
+const (
+	modalNone activeModal = iota
+	modalConnectionPicker
+)
+
 type tableSchema struct {
 	columns     []database.Column
 	constraints []database.Constraint
@@ -40,6 +48,7 @@ type tableSchema struct {
 type Model struct {
 	// states
 	view               screenState
+	activeModal        activeModal
 	viewingQueryResult bool // It's true when the table content is from a run query.
 	helpExpanded       bool // It's true when the help is expanded.
 	inlineEditMode     bool
@@ -52,17 +61,18 @@ type Model struct {
 	// When set, Init fires an async ConnectCmd instead of loading databases directly.
 	pendingConfig *database.Config
 
-	source       datasource.DataSource
-	sidebar      sidebar.Model
-	statusbar    statusbar.Model
-	tabs         tabs.Model
-	querybox     querybox.Model
-	filterbox    filterbox.Model
-	table        table.Model
-	editbox      editbox.Model
-	schemaTable  table.Model // table for displaying the schema of the table
-	paging       pagingState
-	savedQueries []SavedQuery
+	source           datasource.DataSource
+	sidebar          sidebar.Model
+	statusbar        statusbar.Model
+	tabs             tabs.Model
+	querybox         querybox.Model
+	filterbox        filterbox.Model
+	table            table.Model
+	editbox          editbox.Model
+	schemaTable      table.Model // table for displaying the schema of the table
+	connectionPicker connectionpicker.Model
+	paging           pagingState
+	savedQueries     []SavedQuery
 
 	// tablePKColumns are primary key column names for the table last loaded; used to build
 	// a safe WHERE clause when generating UPDATE from a cell. tablePKTarget identifies
@@ -94,8 +104,9 @@ func New() Model {
 			[]string{"Records", "Columns", "Constraints", "Foreign Keys", "Indexes"},
 			[]string{"Recs", "Cols", "Cons", "FKs", "Idx"},
 		),
-		table:    table.New(nil, nil),
-		querybox: querybox.New(),
+		table:            table.New(nil, nil),
+		querybox:         querybox.New(),
+		connectionPicker: connectionpicker.New(),
 		view: screenState{
 			width:  80,
 			height: 24,
@@ -209,11 +220,16 @@ func (m *Model) SetConfig(config config.Config) {
 		m.applyViewState()
 	}
 	m.savedQueries = toModelSavedQueries(config.SavedQueries)
+	m.connectionPicker.SetConnections(config.Connections)
 }
 
 // SetDebugOutput sets the output writer for timing debug output.
 func (m *Model) SetDebugOutput(out io.Writer) {
 	m.debugOutput = out
+}
+
+func (m *Model) OpenConnectionPicker() {
+	m.activeModal = modalConnectionPicker
 }
 
 // toModelSavedQueries converts a list of config.SavedQuery to a list of Model.SavedQuery.

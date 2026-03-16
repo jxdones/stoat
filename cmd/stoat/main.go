@@ -50,6 +50,10 @@ func main() {
 	}
 	m.SetConfig(cfg)
 
+	if *dbPath == "" && *dbDSN == "" {
+		m.OpenConnectionPicker()
+	}
+
 	if *debug {
 		home, err := os.UserHomeDir()
 		if err != nil {

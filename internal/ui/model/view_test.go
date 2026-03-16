@@ -233,7 +233,7 @@ func TestRenderOptions(t *testing.T) {
 		{
 			name:         "large_width_still_renders",
 			width:        200,
-			wantContains: []string{"tab", "esc"},
+			wantContains: []string{"tab"},
 		},
 		{
 			name:         "small_width_uses_inner_width_at_least_one",
