@@ -30,26 +30,35 @@ case "$ARCH" in
     ;;
 esac
 
-BINARY="stoat-${OS}-${ARCH}"
-
+# Resolve "latest" to a concrete tag so we can build the versioned archive name
 if [ "$VERSION" = "latest" ]; then
-  URL="https://github.com/${REPO}/releases/latest/download/${BINARY}"
-else
-  URL="https://github.com/${REPO}/releases/download/${VERSION}/${BINARY}"
+  VERSION=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" \
+    | grep '"tag_name"' \
+    | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')
+  if [ -z "$VERSION" ]; then
+    echo "Failed to resolve latest version from GitHub API."
+    exit 1
+  fi
 fi
+
+# goreleaser uses the version without the leading 'v' in the archive name
+SEMVER="${VERSION#v}"
+ARCHIVE="stoat_${SEMVER}_${OS}_${ARCH}.tar.gz"
+URL="https://github.com/${REPO}/releases/download/${VERSION}/${ARCHIVE}"
 
 echo "Installing stoat ${VERSION} (${OS}/${ARCH})..."
 
 if command -v curl >/dev/null 2>&1; then
-  curl -fsSL "$URL" -o /tmp/stoat
+  curl -fsSL "$URL" -o /tmp/stoat.tar.gz
 elif command -v wget >/dev/null 2>&1; then
-  wget -qO /tmp/stoat "$URL"
+  wget -qO /tmp/stoat.tar.gz "$URL"
 else
   echo "curl or wget is required to install stoat."
   exit 1
 fi
 
-chmod +x /tmp/stoat
+tar -xzf /tmp/stoat.tar.gz -C /tmp stoat
+rm /tmp/stoat.tar.gz
 
 if [ -w "$BINDIR" ]; then
   mv /tmp/stoat "${BINDIR}/stoat"
