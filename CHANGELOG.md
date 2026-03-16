@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-03-16
+
+### Added
+
+- **Connection picker.** Open stoat without arguments to choose a saved connection from a centered modal overlay. Press `c` when focus is clear to switch connections at any time.
+- **Saved connections in config.** Define connections in `~/.stoat/config.yaml` with structured fields (`host`, `port`, `user`, `password`, `database` for Postgres; `path` for SQLite). No more passing DSN strings on the command line.
+- **Modal overlay system.** Modals render as a compositor layer over the main UI. Background content is dimmed to reinforce depth — groundwork for the upcoming settings modal.
+
 ## [0.5.3] - 2026-03-15
 
 ### Added

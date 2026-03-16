@@ -14,11 +14,22 @@ type SavedQuery struct {
 	Query string `yaml:"query"`
 }
 
+const DefaultPostgresPort = 5432
+
 // Connection is a database connection configuration.
 type Connection struct {
 	Name string `yaml:"name"`
 	Type string `yaml:"type"` // "sqlite" or "postgres"
-	DSN  string `yaml:"dsn"`  // postgres://... or /path/to/db.sqlite
+
+	// Postgres fields
+	Host     string `yaml:"host,omitempty"`
+	Port     int    `yaml:"port,omitempty"`
+	User     string `yaml:"user,omitempty"`
+	Password string `yaml:"password,omitempty"`
+	Database string `yaml:"database,omitempty"`
+
+	// SQLite fields
+	Path string `yaml:"path,omitempty"`
 }
 
 // Config holds stoat configuration loaded from ~/.stoat/config.yaml.

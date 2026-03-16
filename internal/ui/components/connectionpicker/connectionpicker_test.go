@@ -9,9 +9,9 @@ import (
 )
 
 var testConnections = []config.Connection{
-	{Name: "local-sqlite", Type: "sqlite", DSN: "/tmp/test.db"},
-	{Name: "prod-postgres", Type: "postgres", DSN: "postgres://localhost/prod"},
-	{Name: "staging-postgres", Type: "postgres", DSN: "postgres://localhost/staging"},
+	{Name: "local-sqlite", Type: "sqlite", Path: "/tmp/test.db"},
+	{Name: "prod-postgres", Type: "postgres", Host: "localhost", Database: "prod"},
+	{Name: "staging-postgres", Type: "postgres", Host: "localhost", Database: "staging"},
 }
 
 func keyMsg(key string) tea.KeyPressMsg {

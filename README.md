@@ -99,10 +99,13 @@ Then add `$HOME/.local/bin` to your `PATH` if needed.
 ## Quick start
 
 ```bash
-# SQLite
+# Open the connection picker (reads from ~/.stoat/config.yaml)
+stoat
+
+# SQLite (one-off, bypasses picker)
 stoat --db path/to/database.sqlite
 
-# PostgreSQL
+# PostgreSQL (one-off, bypasses picker)
 stoat --dsn "postgres://user:password@host:5432/dbname?sslmode=disable"
 
 # Print version
@@ -112,7 +115,7 @@ stoat --version
 stoat --db path/to/database.sqlite --debug
 ```
 
-Pass a database file or connection string to open it on startup. If neither is given, Stoat starts without a database loaded.
+Run `stoat` with no arguments to open the connection picker and choose from your saved connections. Pass `--db` or `--dsn` to connect directly, bypassing the picker.
 
 ### Development commands
 

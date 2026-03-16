@@ -9,6 +9,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/jxdones/stoat/internal/config"
 	"github.com/jxdones/stoat/internal/database"
 	"github.com/jxdones/stoat/internal/ui/components/connectionpicker"
 	"github.com/jxdones/stoat/internal/ui/components/sidebar"
@@ -702,11 +703,17 @@ func (m Model) handleKeyPressInConnectionPicker(msg tea.KeyPressMsg) (tea.Model,
 		cfg := database.Config{Name: selected.Name}
 		switch database.DBMS(strings.ToLower(selected.Type)) {
 		case database.DBMSPostgres:
+			port := selected.Port
+			if port == 0 {
+				port = config.DefaultPostgresPort
+			}
+			dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s",
+				selected.User, selected.Password, selected.Host, port, selected.Database)
 			cfg.DBMS = database.DBMSPostgres
-			cfg.Values = map[string]string{"dsn": selected.DSN}
+			cfg.Values = map[string]string{"dsn": dsn}
 		default:
 			cfg.DBMS = database.DBMSSQLite
-			cfg.Values = map[string]string{"path": selected.DSN}
+			cfg.Values = map[string]string{"path": selected.Path}
 		}
 		m.SetPendingConfig(cfg)
 		m.view.focus = FocusSidebar
