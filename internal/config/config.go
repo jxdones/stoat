@@ -18,8 +18,9 @@ const DefaultPostgresPort = 5432
 
 // Connection is a database connection configuration.
 type Connection struct {
-	Name string `yaml:"name"`
-	Type string `yaml:"type"` // "sqlite" or "postgres"
+	Name     string `yaml:"name"`
+	Type     string `yaml:"type"` // "sqlite" or "postgres"
+	ReadOnly bool   `yaml:"read_only"`
 
 	// Postgres fields
 	Host     string `yaml:"host,omitempty"`

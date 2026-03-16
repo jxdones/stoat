@@ -20,6 +20,8 @@ func main() {
 	dbPath := flag.String("db", "", "path to SQLite database file (e.g. ./mydb.sqlite)")
 	dbDSN := flag.String("dsn", "", "PostgreSQL connection string (e.g. postgres://user:password@host:port/database)")
 	debug := flag.Bool("debug", false, "write per-call timings to ~/.stoat/debug.log")
+	readOnly := flag.Bool("read-only", false, "open connection in read-only mode")
+
 	ver := flag.Bool("version", false, "print version and exit")
 	flag.Parse()
 
@@ -29,17 +31,20 @@ func main() {
 	}
 
 	m := model.New()
+	m.SetReadOnly(*readOnly)
 	if *dbPath != "" {
 		m.SetPendingConfig(database.Config{
-			Name:   filepath.Base(*dbPath),
-			DBMS:   database.DBMSSQLite,
-			Values: map[string]string{"path": *dbPath},
+			Name:     filepath.Base(*dbPath),
+			DBMS:     database.DBMSSQLite,
+			Values:   map[string]string{"path": *dbPath},
+			ReadOnly: *readOnly,
 		})
 	} else if *dbDSN != "" {
 		m.SetPendingConfig(database.Config{
-			Name:   "postgres",
-			DBMS:   database.DBMSPostgres,
-			Values: map[string]string{"dsn": *dbDSN},
+			Name:     "postgres",
+			DBMS:     database.DBMSPostgres,
+			Values:   map[string]string{"dsn": *dbDSN},
+			ReadOnly: *readOnly,
 		})
 	}
 

@@ -42,6 +42,14 @@ func NewConnection(config database.Config) (database.Connection, error) {
 		return nil, err
 	}
 
+	if config.ReadOnly {
+		readOnlyQuery := "SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY"
+		if _, err := dbConn.ExecContext(context.Background(), readOnlyQuery); err != nil {
+			dbConn.Close()
+			return nil, err
+		}
+	}
+
 	return &connection{
 		name: strings.TrimSpace(config.Name),
 		dsn:  dsn,

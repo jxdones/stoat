@@ -212,6 +212,10 @@ func (m Model) handleEditorQueryDone(msg EditorQueryMsg) (tea.Model, tea.Cmd) {
 		cmd := m.statusbar.SetStatusWithTTL(" No active connection", statusbar.Warning, 2*time.Second)
 		return m, cmd
 	}
+	if m.readOnly && m.isWriteQuery(query) {
+		cmd := m.statusbar.SetStatusWithTTL(" Read-only mode: write queries are not allowed", statusbar.Warning, 3*time.Second)
+		return m, cmd
+	}
 	spinnerCmd := m.statusbar.StartSpinner("Running query", statusbar.Info)
 	return m, tea.Batch(spinnerCmd, RequestQueryRunCmd(query))
 }
@@ -228,6 +232,12 @@ func (m Model) handleUpdateFromCell(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bo
 		cmd := m.statusbar.SetStatusWithTTL(" Query results are read-only", statusbar.Warning, 2*time.Second)
 		return m, cmd, true
 	}
+
+	if m.readOnly {
+		cmd := m.statusbar.SetStatusWithTTL(" Read-only mode: write queries are not allowed", statusbar.Warning, 3*time.Second)
+		return m, cmd, true
+	}
+
 	db := m.sidebar.EffectiveDB()
 	tableName := m.sidebar.SelectedTable()
 	_, value, ok := m.table.ActiveCell()
@@ -389,6 +399,13 @@ func (m Model) handleQueryShortcut(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, boo
 		cmd := m.statusbar.SetStatusWithTTL(" Query is empty", statusbar.Warning, 2*time.Second)
 		return m, cmd, true
 	}
+
+	if m.readOnly && m.isWriteQuery(query) {
+		cmd := m.statusbar.SetStatusWithTTL(" Read-only mode: write queries are not allowed", statusbar.Warning, 3*time.Second)
+		m.querybox.SetValue("")
+		return m, cmd, true
+	}
+
 	spinnerCmd := m.statusbar.StartSpinner("Running query", statusbar.Info)
 	return m, tea.Batch(spinnerCmd, RequestQueryRunCmd(query)), true
 }
@@ -660,6 +677,11 @@ func (m Model) handleConnected(msg ConnectedMsg) (tea.Model, tea.Cmd) {
 	if m.debugOutput != nil {
 		m.source = datasource.WithTiming(m.source, m.debugOutput)
 	}
+
+	m.readOnly = msg.readOnly || m.forceReadOnly
+	m.statusbar.SetConnectionName(msg.name)
+	m.statusbar.SetReadOnly(m.readOnly)
+
 	defaultDB, err := m.source.DefaultDatabase(context.Background())
 	if err != nil || defaultDB == "" {
 		spinnerCmd := m.statusbar.StartSpinner("Loading databases", statusbar.Info)
@@ -700,7 +722,8 @@ func (m Model) handleKeyPressInConnectionPicker(msg tea.KeyPressMsg) (tea.Model,
 	switch event {
 	case connectionpicker.EventSelected:
 		selected := m.connectionPicker.Selected()
-		cfg := database.Config{Name: selected.Name}
+		cfg := database.Config{Name: selected.Name, ReadOnly: selected.ReadOnly}
+		cfg.ReadOnly = selected.ReadOnly || m.forceReadOnly
 		switch database.DBMS(strings.ToLower(selected.Type)) {
 		case database.DBMSPostgres:
 			port := selected.Port

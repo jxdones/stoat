@@ -91,7 +91,9 @@ type ConnectingMsg struct {
 
 // ConnectedMsg is sent when the async database connection succeeds.
 type ConnectedMsg struct {
-	source datasource.DataSource
+	source   datasource.DataSource
+	name     string
+	readOnly bool
 }
 
 // ConnectionFailedMsg is sent when the async database connection fails.
@@ -255,6 +257,10 @@ func ConnectCmd(cfg database.Config) tea.Cmd {
 		if err != nil {
 			return ConnectionFailedMsg{err: err}
 		}
-		return ConnectedMsg{source: datasource.FromConnection(conn)}
+		return ConnectedMsg{
+			source:   datasource.FromConnection(conn),
+			name:     cfg.Name,
+			readOnly: cfg.ReadOnly,
+		}
 	}
 }

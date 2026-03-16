@@ -34,6 +34,7 @@ Built with [Bubbletea](https://github.com/charmbracelet/bubbletea) by Charmbrace
 - Vim-style navigation — `hjkl`, `gg`/`G`, count prefixes (`10j`), all the muscle memory you already have
 - Edit in place — press `Enter` on any cell to edit its value inline; confirm with `Enter`, cancel with `Esc`
 - Filter without SQL — narrow down loaded rows without rewriting your query
+- Read-only mode — connect safely to production with `--read-only` or `read_only: true` per connection in config; enforced at the DB level and in the UI
 - Themes — `default`, `dracula`, or `solarized`
 
 ## Database support
@@ -113,6 +114,9 @@ stoat --version
 
 # Write per-call timings to ~/.stoat/debug.log
 stoat --db path/to/database.sqlite --debug
+
+# Open in read-only mode (works with --db, --dsn, or the connection picker)
+stoat --read-only
 ```
 
 Run `stoat` with no arguments to open the connection picker and choose from your saved connections. Pass `--db` or `--dsn` to connect directly, bypassing the picker.
@@ -161,7 +165,7 @@ Stoat reads configuration from **`~/.stoat/config.yaml`**. This file is created 
 | Option | Description |
 |--------|-------------|
 | `theme` | UI theme: `default`, `dracula`, or `solarized`. |
-| `connections` | Saved database connections. |
+| `connections` | Saved database connections. Each connection supports `read_only: true` to enforce read-only mode at the DB and UI level. |
 | `saved_queries` | Named SQL snippets. In the query box, type `@Name` and press **Ctrl+N** to expand. |
 
 Example:
@@ -182,6 +186,15 @@ connections:
     user: postgres
     password: secret
     database: mydb
+
+  - name: supabase-prod
+    type: postgres
+    host: db.[project].supabase.co
+    port: 5432
+    user: postgres
+    password: secret
+    database: postgres
+    read_only: true   # blocks writes in the UI and at the DB level
 
 saved_queries:
   - name: recent_users

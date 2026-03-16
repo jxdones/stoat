@@ -198,6 +198,65 @@ func TestIsFocused(t *testing.T) {
 	}
 }
 
+func TestIsWriteQuery(t *testing.T) {
+	tests := []struct {
+		name  string
+		query string
+		want  bool
+	}{
+		{
+			name:  "insert_query_is_write",
+			query: "INSERT INTO users(id) VALUES (1)",
+			want:  true,
+		},
+		{
+			name:  "lowercase_update_with_whitespace_is_write",
+			query: "  \n\tupdate users set name = 'alice' where id = 1",
+			want:  true,
+		},
+		{
+			name:  "delete_query_is_write",
+			query: "DELETE FROM users WHERE id = 1",
+			want:  true,
+		},
+		{
+			name:  "create_query_is_write",
+			query: "CREATE TABLE users(id INTEGER PRIMARY KEY)",
+			want:  true,
+		},
+		{
+			name:  "select_query_is_not_write",
+			query: "SELECT * FROM users",
+			want:  false,
+		},
+		{
+			name:  "with_clause_select_is_not_write",
+			query: "WITH recent AS (SELECT * FROM users) SELECT * FROM recent",
+			want:  false,
+		},
+		{
+			name:  "comment_then_insert_is_not_detected_as_write",
+			query: "-- comment\nINSERT INTO users(id) VALUES (1)",
+			want:  false,
+		},
+		{
+			name:  "empty_query_is_not_write",
+			query: "   \n\t",
+			want:  false,
+		},
+	}
+
+	m := New()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := m.isWriteQuery(tt.query)
+			if got != tt.want {
+				t.Fatalf("isWriteQuery(%q) = %v, want %v", tt.query, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestUpdate(t *testing.T) {
 	tests := []struct {
 		name        string

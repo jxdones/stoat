@@ -1,6 +1,7 @@
 package statusbar
 
 import (
+	"strings"
 	"time"
 
 	"charm.land/bubbles/v2/spinner"
@@ -12,9 +13,8 @@ import (
 )
 
 const (
-	minContentWidth       = 8
-	horizontalPaddingCols = 2
-	defaultText           = " Ready"
+	defaultText            = " Ready"
+	maxConnectionNameWidth = 20
 )
 
 // Kind is the status severity level (info, success, warning, error).
@@ -40,6 +40,9 @@ type Model struct {
 
 	spinner  spinner.Model
 	spinning bool
+
+	connectionName string
+	readOnly       bool
 }
 
 // New returns a new status bar model with default " Ready" info message.
@@ -92,31 +95,67 @@ func (m *Model) StartSpinner(text string, kind Kind) tea.Cmd {
 	return m.spinner.Tick
 }
 
+// StopSpinner stops the spinner.
 func (m *Model) StopSpinner() {
 	m.spinning = false
 }
 
-// View renders the status bar at the given width using the current theme.
-func (m Model) View(width int) tea.View {
-	style := lipgloss.NewStyle().Foreground(theme.Current.TextMuted)
-	switch m.kind {
-	case Success:
-		style = style.Foreground(theme.Current.TextAccent)
-	case Warning:
-		style = style.Foreground(theme.Current.TextWarning)
-	case Error:
-		style = style.Foreground(theme.Current.TextError).Bold(true)
+// SetConnectionName sets the connection name shown on the right of the status bar.
+func (m *Model) SetConnectionName(name string) {
+	m.connectionName = name
+}
+
+// SetReadOnly sets the read-only flag, shown as [RO] on the right of the status bar.
+func (m *Model) SetReadOnly(readOnly bool) {
+	m.readOnly = readOnly
+}
+
+// renderRight builds the right-zone string: connection name and/or [RO] badge.
+// Returns empty string when there is nothing to show.
+func (m Model) renderRight() string {
+	if m.connectionName == "" && !m.readOnly {
+		return ""
 	}
+
+	var parts []string
+	if m.connectionName != "" {
+		name := ansi.Truncate(m.connectionName, maxConnectionNameWidth, "…")
+		parts = append(parts, lipgloss.NewStyle().Foreground(theme.Current.TextMuted).Render(name))
+	}
+	if m.readOnly {
+		parts = append(parts, lipgloss.NewStyle().Foreground(theme.Current.TextAccent).Bold(true).Render("[RO]"))
+	}
+
+	return "  " + strings.Join(parts, "  ") + " "
+}
+
+// View renders the status bar at the given width using the current theme.
+// The left zone shows the current status message; the right zone shows the
+// connection name and read-only indicator when set.
+func (m Model) View(width int) tea.View {
 	text := m.text
 	if m.spinning {
 		text = " " + m.spinner.View() + " " + text
 	}
-	contentWidth := max(minContentWidth, width-horizontalPaddingCols)
-	content := style.Render(ansi.Truncate(text, contentWidth, "…"))
-	rendered := lipgloss.NewStyle().
-		Width(width).
-		Render(content)
-	return tea.NewView(rendered)
+
+	right := m.renderRight()
+	rightWidth := ansi.StringWidth(right)
+	leftWidth := width - rightWidth
+
+	leftStyle := lipgloss.NewStyle().Foreground(theme.Current.TextMuted)
+	switch m.kind {
+	case Success:
+		leftStyle = leftStyle.Foreground(theme.Current.TextAccent)
+	case Warning:
+		leftStyle = leftStyle.Foreground(theme.Current.TextWarning)
+	case Error:
+		leftStyle = leftStyle.Foreground(theme.Current.TextError).Bold(true)
+	}
+
+	leftContent := leftStyle.Render(ansi.Truncate(text, leftWidth, "…"))
+	left := lipgloss.NewStyle().Width(leftWidth).Render(leftContent)
+
+	return tea.NewView(left + right)
 }
 
 // Update handles spinner updates and returns a command to be executed.

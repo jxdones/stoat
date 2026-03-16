@@ -2,6 +2,7 @@ package model
 
 import (
 	"io"
+	"strings"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
@@ -81,6 +82,9 @@ type Model struct {
 	tablePKTarget  database.DatabaseTarget
 
 	queryResultPreview string // truncated one-line preview of the last run query for the header
+
+	forceReadOnly bool // set by --read-only CLI flag; forces read-only regardless of connection config
+	readOnly      bool // true when the active connection is read-only (either flag or config)
 
 	debugOutput io.Writer // for timing debug output
 }
@@ -230,6 +234,23 @@ func (m *Model) SetDebugOutput(out io.Writer) {
 
 func (m *Model) OpenConnectionPicker() {
 	m.activeModal = modalConnectionPicker
+}
+
+// SetReadOnly sets the read-only flag, shown as [RO] on the right of the status bar.
+func (m *Model) SetReadOnly(readOnly bool) {
+	m.forceReadOnly = readOnly
+	m.statusbar.SetReadOnly(readOnly)
+}
+
+// isWriteQuery checks if the query is a write query.
+func (m Model) isWriteQuery(query string) bool {
+	q := strings.ToUpper(strings.TrimSpace(query))
+	for _, kw := range []string{"INSERT", "UPDATE", "DELETE", "DROP", "CREATE", "ALTER", "TRUNCATE"} {
+		if strings.HasPrefix(q, kw) {
+			return true
+		}
+	}
+	return false
 }
 
 // toModelSavedQueries converts a list of config.SavedQuery to a list of Model.SavedQuery.

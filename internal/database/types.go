@@ -10,9 +10,10 @@ const (
 
 // Config is the configuration for a database connection.
 type Config struct {
-	Name   string
-	DBMS   DBMS
-	Values map[string]string
+	Name     string
+	DBMS     DBMS
+	Values   map[string]string
+	ReadOnly bool
 }
 
 // Column is a column in a table.

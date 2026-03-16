@@ -29,7 +29,11 @@ func NewConnection(config database.Config) (database.Connection, error) {
 	if path == "" {
 		return nil, database.ErrInvalidConfig
 	}
-	dbConn, err := sql.Open("sqlite3", path)
+	dsn := path
+	if config.ReadOnly {
+		dsn = "file:" + path + "?mode=ro"
+	}
+	dbConn, err := sql.Open("sqlite3", dsn)
 	if err != nil {
 		return nil, err
 	}

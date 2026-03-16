@@ -1,9 +1,12 @@
 package statusbar
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/charmbracelet/x/ansi"
 )
 
 func TestNew(t *testing.T) {
@@ -160,7 +163,7 @@ func TestView(t *testing.T) {
 			name:         "small_width_truncates_content",
 			width:        12,
 			setup:        func(m *Model) { m.SetStatus("very long status message here", Info) },
-			wantContains: "very long", // truncated with "…"
+			wantContains: "very long",
 			nonEmpty:     true,
 		},
 		{
@@ -171,8 +174,8 @@ func TestView(t *testing.T) {
 			nonEmpty:     true,
 		},
 		{
-			name:         "min_content_width_used_when_width_small",
-			width:        5,
+			name:         "left_message_always_visible",
+			width:        80,
 			wantContains: " Ready",
 			nonEmpty:     true,
 		},
@@ -189,6 +192,76 @@ func TestView(t *testing.T) {
 			}
 			if tt.wantContains != "" && !strings.Contains(view.Content, tt.wantContains) {
 				t.Errorf("View(%d).Content should contain %q; got %q", tt.width, tt.wantContains, view.Content)
+			}
+		})
+	}
+}
+
+func TestViewRightZone(t *testing.T) {
+	tests := []struct {
+		name         string
+		setup        func(*Model)
+		wantContains []string
+		wantAbsent   []string
+	}{
+		{
+			name:         "connection_name_shown",
+			setup:        func(m *Model) { m.SetConnectionName("supabase-prod") },
+			wantContains: []string{"supabase-prod"},
+		},
+		{
+			name:         "read_only_badge_shown",
+			setup:        func(m *Model) { m.SetReadOnly(true) },
+			wantContains: []string{"[RO]"},
+		},
+		{
+			name: "connection_name_and_read_only_both_shown",
+			setup: func(m *Model) {
+				m.SetConnectionName("supabase-prod")
+				m.SetReadOnly(true)
+			},
+			wantContains: []string{"supabase-prod", "[RO]"},
+		},
+		{
+			name:         "long_name_truncated_with_ellipsis",
+			setup:        func(m *Model) { m.SetConnectionName("this-is-a-very-long-connection-name-exceeding-limit") },
+			wantContains: []string{"…"},
+		},
+		{
+			name:       "no_name_no_ro_right_zone_absent",
+			setup:      func(m *Model) {},
+			wantAbsent: []string{"[RO]"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := New()
+			tt.setup(&m)
+			view := m.View(80)
+			for _, want := range tt.wantContains {
+				if !strings.Contains(view.Content, want) {
+					t.Errorf("View(80).Content should contain %q; got %q", want, view.Content)
+				}
+			}
+			for _, absent := range tt.wantAbsent {
+				if strings.Contains(view.Content, absent) {
+					t.Errorf("View(80).Content should not contain %q; got %q", absent, view.Content)
+				}
+			}
+		})
+	}
+}
+
+func TestViewWidth(t *testing.T) {
+	for _, width := range []int{80, 100, 120, 200} {
+		t.Run(fmt.Sprintf("width_%d_fills_exactly", width), func(t *testing.T) {
+			m := New()
+			m.SetConnectionName("supabase-prod")
+			m.SetReadOnly(true)
+			view := m.View(width)
+			got := ansi.StringWidth(view.Content)
+			if got != width {
+				t.Errorf("View(%d) rendered width = %d, want %d", width, got, width)
 			}
 		})
 	}
