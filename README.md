@@ -131,6 +131,7 @@ make lint     # run golangci-lint
 | --- | --- | --- |
 | `Ctrl+C` | Quit (always) | Global |
 | `q` | Quit (only when focus is clear) | Global |
+| `c` | Show connections list (only when focus is clear) | Global |
 | `Esc` | Clear focus (then use `q` to quit) | Global |
 | `Tab` / `Shift+Tab` | Cycle focus forward/backward | Global |
 | `/` | Focus filter box | Global |
