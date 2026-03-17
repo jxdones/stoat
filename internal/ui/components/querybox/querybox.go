@@ -26,6 +26,24 @@ func New() Model {
 	ta.CharLimit = 10000
 	ta.SetHeight(1)
 
+	ta.SetStyles(themedStyles(ta))
+	ta.Focus()
+
+	return Model{
+		input:  ta,
+		width:  40,
+		height: 3,
+		focus:  false,
+	}
+}
+
+// ApplyTheme re-applies the current theme colors to the textarea styles.
+// Call this whenever the active theme changes.
+func (m *Model) ApplyTheme() {
+	m.input.SetStyles(themedStyles(m.input))
+}
+
+func themedStyles(ta textarea.Model) textarea.Styles {
 	styles := ta.Styles()
 	styles.Focused.Prompt = styles.Focused.Prompt.Foreground(theme.Current.TextAccent)
 	styles.Focused.Text = styles.Focused.Text.Foreground(theme.Current.TextPrimary)
@@ -39,15 +57,7 @@ func New() Model {
 	styles.Blurred.CursorLineNumber = styles.Blurred.CursorLineNumber.Foreground(theme.Current.TextMuted)
 	styles.Blurred.LineNumber = styles.Blurred.LineNumber.Foreground(theme.Current.TextMuted)
 	styles.Blurred.Placeholder = styles.Blurred.Placeholder.Foreground(theme.Current.TextMuted)
-	ta.SetStyles(styles)
-	ta.Focus()
-
-	return Model{
-		input:  ta,
-		width:  40,
-		height: 3,
-		focus:  false,
-	}
+	return styles
 }
 
 // SetSize clamps dimensions and updates the input textarea size.

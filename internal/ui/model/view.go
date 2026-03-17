@@ -364,14 +364,36 @@ func (m Model) renderSchemaPlaceholder(width, height int, msg string) string {
 // renderForeignKeys renders the foreign keys area of the UI layout.
 func (m Model) renderForeignKeys(width, height int) string {
 	content := []string{}
+	columnStyle := lipgloss.NewStyle().Foreground(theme.Current.TextAccent)
+	arrowStyle := lipgloss.NewStyle().Foreground(theme.Current.TextMuted)
+	refStyle := lipgloss.NewStyle().Foreground(theme.Current.TextPrimary)
+	actionLabelStyle := lipgloss.NewStyle().Foreground(theme.Current.TextMuted)
+	actionValueStyle := lipgloss.NewStyle().Foreground(theme.Current.TextWarning).Bold(true)
+
 	for _, fk := range m.tableSchema.foreignKeys {
 		indent := strings.Repeat(" ", len(fk.Column)+5)
-		line := fmt.Sprintf("%s → %s.%s\n", fk.Column, fk.RefTable, fk.RefColumn)
+		line := fmt.Sprintf(
+			"%s %s %s.%s\n",
+			columnStyle.Render(fk.Column),
+			arrowStyle.Render("→"),
+			refStyle.Render(fk.RefTable),
+			refStyle.Render(fk.RefColumn),
+		)
 		if fk.OnDeleteAction != "" {
-			line += fmt.Sprintf("%son DELETE: %s\n", indent, fk.OnDeleteAction)
+			line += fmt.Sprintf(
+				"%s%s %s\n",
+				indent,
+				actionLabelStyle.Render("on DELETE:"),
+				actionValueStyle.Render(fk.OnDeleteAction),
+			)
 		}
 		if fk.OnUpdateAction != "" {
-			line += fmt.Sprintf("%son UPDATE: %s\n", indent, fk.OnUpdateAction)
+			line += fmt.Sprintf(
+				"%s%s %s\n",
+				indent,
+				actionLabelStyle.Render("on UPDATE:"),
+				actionValueStyle.Render(fk.OnUpdateAction),
+			)
 		}
 		line += "\n"
 		content = append(content, line)
@@ -383,7 +405,7 @@ func (m Model) renderForeignKeys(width, height int) string {
 	}
 	clipped := strings.Join(lines, "\n")
 	return common.BorderedPane(width, height, m.isFocused(FocusTable), common.FocusBorder(m.isFocused(FocusTable))).
-		Render(lipgloss.NewStyle().Foreground(theme.Current.TextMuted).Render(clipped))
+		Render(clipped)
 }
 
 // normalizeCanvas clips/pads content to an exact width x height rectangle.

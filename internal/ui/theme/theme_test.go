@@ -2,8 +2,19 @@ package theme
 
 import (
 	"image/color"
+	"os"
 	"testing"
+
+	"charm.land/lipgloss/v2/compat"
+	"github.com/charmbracelet/colorprofile"
 )
+
+func TestMain(m *testing.M) {
+	// Force TrueColor so CompleteColor.RGBA() returns hex values in tests,
+	// not NoColor (which happens when there is no terminal attached).
+	compat.Profile = colorprofile.TrueColor
+	os.Exit(m.Run())
+}
 
 // restoreCurrent restores Current to the value it had before the test (for tests that mutate it).
 func restoreCurrent(prev Theme) {
@@ -58,6 +69,46 @@ func Test_SetNamedTheme(t *testing.T) {
 			name:   "trimmed",
 			input:  "  solarized  ",
 			expect: SolarizedTheme(),
+		},
+		{
+			name:   "everforest",
+			input:  "everforest",
+			expect: EverforestTheme(),
+		},
+		{
+			name:   "gruvbox",
+			input:  "gruvbox",
+			expect: GruvboxTheme(),
+		},
+		{
+			name:   "one-dark",
+			input:  "one-dark",
+			expect: OneDarkTheme(),
+		},
+		{
+			name:   "catppuccin",
+			input:  "catppuccin",
+			expect: CatppuccinTheme(),
+		},
+		{
+			name:   "princess",
+			input:  "princess",
+			expect: PrincessTheme(),
+		},
+		{
+			name:   "one-shell",
+			input:  "one-shell",
+			expect: OneShellTheme(),
+		},
+		{
+			name:   "blueish",
+			input:  "blueish",
+			expect: BlueishTheme(),
+		},
+		{
+			name:   "rose-pine",
+			input:  "rose-pine",
+			expect: RosePineTheme(),
 		},
 	}
 	for _, tt := range tests {

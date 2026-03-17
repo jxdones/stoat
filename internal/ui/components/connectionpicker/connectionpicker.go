@@ -80,7 +80,7 @@ func (m Model) View() string {
 	lines := make([]string, len(m.connections))
 	for i, conn := range m.connections {
 		if i == m.selected {
-			lines[i] = lipgloss.NewStyle().Foreground(theme.Current.TextAccent).Render("> " + conn.Name)
+			lines[i] = lipgloss.NewStyle().Foreground(theme.Current.TextAccent).Bold(true).Render("> " + conn.Name)
 		} else {
 			lines[i] = lipgloss.NewStyle().Foreground(theme.Current.TextPrimary).Render("  " + conn.Name)
 		}

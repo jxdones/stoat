@@ -17,10 +17,20 @@ type Model struct {
 func New() Model {
 	ti := textinput.New()
 	ti.CharLimit = 0
+	ti.SetStyles(editboxThemedStyles(ti))
+	return Model{input: ti}
+}
+
+// ApplyTheme re-applies the current theme colors to the input styles.
+// Call this whenever the active theme changes.
+func (m *Model) ApplyTheme() {
+	m.input.SetStyles(editboxThemedStyles(m.input))
+}
+
+func editboxThemedStyles(ti textinput.Model) textinput.Styles {
 	styles := ti.Styles()
 	styles.Focused.Prompt = styles.Focused.Prompt.Foreground(theme.Current.TextAccent)
-	ti.SetStyles(styles)
-	return Model{input: ti}
+	return styles
 }
 
 // Focus sets focus on the input.

@@ -223,6 +223,8 @@ func (m Model) isFocused(p FocusedPanel) bool {
 // handleConnected, once a connection is established.
 func (m *Model) SetConfig(config config.Config) {
 	if _, ok := theme.SetNamedTheme(config.Theme); ok {
+		m.querybox.ApplyTheme()
+		m.editbox.ApplyTheme()
 		m.applyViewState()
 	}
 	m.connectionPicker.SetConnections(config.Connections)

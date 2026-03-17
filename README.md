@@ -35,31 +35,11 @@ Built with [Bubbletea](https://github.com/charmbracelet/bubbletea) by Charmbrace
 - Edit in place — press `Enter` on any cell to edit its value inline; confirm with `Enter`, cancel with `Esc`
 - Filter without SQL — narrow down loaded rows without rewriting your query
 - Read-only mode — connect safely to production with `--read-only` or `read_only: true` per connection in config; enforced at the DB level and in the UI
-- Themes — `default`, `dracula`, or `solarized`
+- Themes — `default`, `dracula`, `solarized`, `catppuccin`, `everforest`, `gruvbox`, `one-dark`, `rose-pine`, `princess`, `one-shell`, `blueish`
 
 ## Database support
 
 SQLite and PostgreSQL are supported. MariaDB is planned.
-
-## Works with hosted databases
-
-If you use Supabase, Neon, Railway, or Render, paste your connection string and you're in. No browser, no dashboard, no context switch.
-
-```bash
-# Supabase
-stoat --dsn "postgres://postgres:[password]@db.[project].supabase.co:[port]/postgres?sslmode=require"
-
-# Neon
-stoat --dsn "postgres://[user]:[password]@[host].neon.tech/[dbname]?sslmode=require"
-
-# Railway
-stoat --dsn "postgres://[user]:[password]@[host].railway.app:[port]/[dbname]?sslmode=require"
-
-# Render
-stoat --dsn "postgres://[user]:[password]@[host].render.com:[port]/[dbname]?sslmode=require"
-```
-
-Any provider that gives you a `postgres://` connection string works. Including AWS RDS, GCP Cloud SQL, and Azure Database for PostgreSQL.
 
 ## Installation
 
@@ -72,7 +52,7 @@ curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh
 To install a specific version:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh -s -- v0.5.3
+curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh -s -- v0.8.0
 ```
 
 **Homebrew** (macOS):
@@ -80,6 +60,12 @@ curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh 
 ```bash
 brew tap jxdones/stoat
 brew install stoat
+```
+
+**Go install:**
+
+```bash
+go install github.com/jxdones/stoat/cmd/stoat@latest
 ```
 
 **From the repo root** (developers):
@@ -121,6 +107,26 @@ stoat --read-only
 
 Run `stoat` with no arguments to open the connection picker and choose from your saved connections. Pass `--db` or `--dsn` to connect directly, bypassing the picker.
 
+## Works with hosted databases
+
+If you use Supabase, Neon, Railway, or Render, paste your connection string and you're in. No browser, no dashboard, no context switch.
+
+```bash
+# Supabase
+stoat --dsn "postgres://postgres:[password]@db.[project].supabase.co:[port]/postgres?sslmode=require"
+
+# Neon
+stoat --dsn "postgres://[user]:[password]@[host].neon.tech/[dbname]?sslmode=require"
+
+# Railway
+stoat --dsn "postgres://[user]:[password]@[host].railway.app:[port]/[dbname]?sslmode=require"
+
+# Render
+stoat --dsn "postgres://[user]:[password]@[host].render.com:[port]/[dbname]?sslmode=require"
+```
+
+Any provider that gives you a `postgres://` connection string works. Including AWS RDS, GCP Cloud SQL, and Azure Database for PostgreSQL.
+
 ### Development commands
 
 ```bash
@@ -131,32 +137,62 @@ make lint     # run golangci-lint
 
 ## Key controls
 
-| Key | Action | Scope |
-| --- | --- | --- |
-| `Ctrl+C` | Quit (always) | Global |
-| `q` | Quit (only when focus is clear) | Global |
-| `c` | Show connections list (only when focus is clear) | Global |
-| `Esc` | Clear focus (then use `q` to quit) | Global |
-| `Tab` / `Shift+Tab` | Cycle focus forward/backward | Global |
-| `/` | Focus filter box | Global |
-| `Ctrl+R` | Reload current table (first page) | Global (when a table is selected) |
-| `h` `j` `k` `l` | Move cursor | Sidebar / Table |
-| `g` / `G` | Jump to top / bottom | Sidebar / Table |
-| `Enter` | Open selected table | Sidebar |
-| `Enter` | Apply filter to currently loaded rows (empty filter resets table) | Filter box |
-| `Ctrl+1` – `Ctrl+5` | Switch tabs (Records, Columns, Constraints, Foreign Keys, Indexes) | Table |
-| `Ctrl+N` / `Ctrl+B` | Next / previous page | Table |
-| `N` + motion (e.g. `4h`, `4l`, `10j`) | Repeat motion N times (vim count prefix) | Table |
-| `Enter` | Enter inline edit mode for the selected cell | Table |
-| `Enter` | Confirm edit and run UPDATE | Edit mode |
-| `Esc` | Cancel edit | Edit mode |
-| `y` | Copy value from active cell to clipboard | Table |
-| `Ctrl+E` | Open `$EDITOR` with a SQL template; save and close to run | Query box |
-| `Ctrl+S` | Run query | Query box |
-| `Ctrl+N` | Expand saved query (type `@Name` then Ctrl+N to insert) | Query box |
-| `Ctrl+L` | Clear query | Query box |
+The options bar at the bottom shows shortcuts for the currently focused pane. When focus is clear, it shows `q` to quit.
 
-The options bar at the bottom shows shortcuts for the currently focused pane (sidebar, filter, table, or query). When focus is clear, it shows `q` to quit.
+### Global
+
+| Key | Action |
+| --- | --- |
+| `Ctrl+C` | Quit (always) |
+| `q` | Quit (only when focus is clear) |
+| `Esc` | Clear focus |
+| `Tab` / `Shift+Tab` | Cycle focus forward / backward |
+| `/` | Focus filter box |
+| `c` | Show connection picker (only when focus is clear) |
+| `Ctrl+R` | Reload current table (first page) |
+| `?` | Show help |
+
+### Sidebar
+
+| Key | Action |
+| --- | --- |
+| `h` `j` `k` `l` | Move cursor |
+| `g` / `G` | Jump to top / bottom |
+| `Enter` | Open selected table |
+
+### Table
+
+| Key | Action |
+| --- | --- |
+| `h` `j` `k` `l` | Move cursor |
+| `g` / `G` | Jump to top / bottom |
+| `Ctrl+1` – `Ctrl+5` | Switch tabs (Records, Columns, Constraints, Foreign Keys, Indexes) |
+| `Ctrl+N` / `Ctrl+B` | Next / previous page |
+| `N` + motion (e.g. `4h`, `10j`) | Repeat motion N times (vim count prefix) |
+| `Enter` | Enter inline edit mode for the selected cell |
+| `y` | Copy value from active cell to clipboard |
+
+### Table — Edit mode
+
+| Key | Action |
+| --- | --- |
+| `Enter` | Confirm edit and run UPDATE |
+| `Esc` | Cancel edit |
+
+### Filter box
+
+| Key | Action |
+| --- | --- |
+| `Enter` | Apply filter to currently loaded rows (empty filter resets table) |
+
+### Query box
+
+| Key | Action |
+| --- | --- |
+| `Ctrl+S` | Run query |
+| `Ctrl+E` | Open `$EDITOR` with a SQL template; save and close to run |
+| `Ctrl+N` | Expand saved query (type `@Name` then Ctrl+N to insert) |
+| `Ctrl+L` | Clear query |
 
 ## Configuration
 
@@ -164,7 +200,7 @@ Stoat reads configuration from **`~/.stoat/config.yaml`**. This file is created 
 
 | Option | Description |
 |--------|-------------|
-| `theme` | UI theme: `default`, `dracula`, or `solarized`. |
+| `theme` | UI theme. Available: `default`, `dracula`, `solarized`, `catppuccin`, `everforest`, `gruvbox`, `one-dark`, `rose-pine`, `princess`, `one-shell`, `blueish`. |
 | `connections` | Saved database connections. Each connection supports `read_only: true` to enforce read-only mode at the DB and UI level, and `saved_queries` to define named SQL snippets scoped to that connection. |
 
 Example:

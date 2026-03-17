@@ -120,7 +120,7 @@ func (m Model) renderRight() string {
 	var parts []string
 	if m.connectionName != "" {
 		name := ansi.Truncate(m.connectionName, maxConnectionNameWidth, "…")
-		parts = append(parts, lipgloss.NewStyle().Foreground(theme.Current.TextMuted).Render(name))
+		parts = append(parts, lipgloss.NewStyle().Foreground(theme.Current.TextPrimary).Bold(true).Render(name))
 	}
 	if m.readOnly {
 		parts = append(parts, lipgloss.NewStyle().Foreground(theme.Current.TextAccent).Bold(true).Render("[RO]"))
@@ -142,12 +142,12 @@ func (m Model) View(width int) tea.View {
 	rightWidth := ansi.StringWidth(right)
 	leftWidth := width - rightWidth
 
-	leftStyle := lipgloss.NewStyle().Foreground(theme.Current.TextMuted)
+	leftStyle := lipgloss.NewStyle().Foreground(theme.Current.TextPrimary).Bold(true)
 	switch m.kind {
 	case Success:
-		leftStyle = leftStyle.Foreground(theme.Current.TextAccent)
+		leftStyle = leftStyle.Foreground(theme.Current.TextAccent).Bold(true)
 	case Warning:
-		leftStyle = leftStyle.Foreground(theme.Current.TextWarning)
+		leftStyle = leftStyle.Foreground(theme.Current.TextWarning).Bold(true)
 	case Error:
 		leftStyle = leftStyle.Foreground(theme.Current.TextError).Bold(true)
 	}
