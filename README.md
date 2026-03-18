@@ -12,6 +12,8 @@
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Go Version](https://img.shields.io/badge/go-1.26+-00ADD8.svg)
+
+[Quick Start](#quick-start) • [Features](#features) • [Installation](#installation) • [Database Support](#database-support) • [Key Controls](#key-controls) • [Themes](#themes) • [Configuration](#configuration) • [Contributing](#contributing)
 </div>
 
 ## Why Stoat?
@@ -26,6 +28,30 @@ Built for anyone who lives in the terminal and wants database access that doesn'
 
 Built with [Bubbletea](https://github.com/charmbracelet/bubbletea) by Charmbracelet.
 
+## Quick start
+
+```bash
+# Open the connection picker (reads from ~/.stoat/config.yaml)
+stoat
+
+# SQLite (one-off, bypasses picker)
+stoat --db path/to/database.sqlite
+
+# PostgreSQL (one-off, bypasses picker)
+stoat --dsn "postgres://user:password@host:5432/dbname?sslmode=disable"
+
+# Print version
+stoat --version
+
+# Write per-call timings to ~/.stoat/debug.log
+stoat --db path/to/database.sqlite --debug
+
+# Open in read-only mode (works with --db, --dsn, or the connection picker)
+stoat --read-only
+```
+
+Run `stoat` with no arguments to open the connection picker and choose from your saved connections. Pass `--db` or `--dsn` to connect directly, bypassing the picker.
+
 ## Features
 
 - Schema exploration — browse columns, indexes, constraints, and foreign keys in dedicated tabs without writing `PRAGMA` or `\d`
@@ -36,11 +62,7 @@ Built with [Bubbletea](https://github.com/charmbracelet/bubbletea) by Charmbrace
 - Filter without SQL — narrow down loaded rows without rewriting your query
 - Read-only mode — connect safely to production with `--read-only` or `read_only: true` per connection in config; enforced at the DB level and in the UI
 - SQL syntax highlighting — keywords, strings, numbers, comments, and operators are colored as you type; palette adapts to the active theme
-- Themes — `default`, `dracula`, `solarized`, `catppuccin`, `everforest`, `gruvbox`, `one-dark`, `rose-pine`, `princess`, `one-shell`, `blueish`
-
-## Database support
-
-SQLite and PostgreSQL are supported. MariaDB is planned.
+- Themes — 11 built-in themes including dracula, catppuccin, gruvbox, rose-pine, and more
 
 ## Installation
 
@@ -84,29 +106,9 @@ make install-prefix
 
 Then add `$HOME/.local/bin` to your `PATH` if needed.
 
-## Quick start
+## Database support
 
-```bash
-# Open the connection picker (reads from ~/.stoat/config.yaml)
-stoat
-
-# SQLite (one-off, bypasses picker)
-stoat --db path/to/database.sqlite
-
-# PostgreSQL (one-off, bypasses picker)
-stoat --dsn "postgres://user:password@host:5432/dbname?sslmode=disable"
-
-# Print version
-stoat --version
-
-# Write per-call timings to ~/.stoat/debug.log
-stoat --db path/to/database.sqlite --debug
-
-# Open in read-only mode (works with --db, --dsn, or the connection picker)
-stoat --read-only
-```
-
-Run `stoat` with no arguments to open the connection picker and choose from your saved connections. Pass `--db` or `--dsn` to connect directly, bypassing the picker.
+SQLite and PostgreSQL are supported. MariaDB is planned.
 
 ## Works with hosted databases
 
@@ -127,14 +129,6 @@ stoat --dsn "postgres://[user]:[password]@[host].render.com:[port]/[dbname]?sslm
 ```
 
 Any provider that gives you a `postgres://` connection string works. Including AWS RDS, GCP Cloud SQL, and Azure Database for PostgreSQL.
-
-### Development commands
-
-```bash
-make test     # run tests
-make fmt      # format code
-make lint     # run golangci-lint
-```
 
 ## Key controls
 
@@ -203,6 +197,15 @@ The options bar at the bottom shows shortcuts for the currently focused pane. Wh
 | `Ctrl+N` | Expand saved query (type `@Name` then Ctrl+N to insert) |
 | `Ctrl+L` | Clear query |
 
+## Themes
+
+| | |
+|---|---|
+| ![Dracula](assets/stoat_dracula.png) | ![Everforest](assets/stoat_everforest.png) |
+| ![Gruvbox](assets/stoat_gruvbox.png) | ![Princess](assets/stoat_princess.png) |
+
+Available themes: `default`, `dracula`, `solarized`, `catppuccin`, `everforest`, `gruvbox`, `one-dark`, `rose-pine`, `princess`, `one-shell`, `blueish`. Set via `theme` in `~/.stoat/config.yaml`.
+
 ## Configuration
 
 Stoat reads configuration from **`~/.stoat/config.yaml`**. This file is created automatically on first run.
@@ -246,6 +249,10 @@ connections:
     read_only: true   # blocks writes in the UI and at the DB level
 
 ```
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
