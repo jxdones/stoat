@@ -35,6 +35,7 @@ Built with [Bubbletea](https://github.com/charmbracelet/bubbletea) by Charmbrace
 - Edit in place — press `Enter` on any cell to edit its value inline; confirm with `Enter`, cancel with `Esc`
 - Filter without SQL — narrow down loaded rows without rewriting your query
 - Read-only mode — connect safely to production with `--read-only` or `read_only: true` per connection in config; enforced at the DB level and in the UI
+- SQL syntax highlighting — keywords, strings, numbers, comments, and operators are colored as you type; palette adapts to the active theme
 - Themes — `default`, `dracula`, `solarized`, `catppuccin`, `everforest`, `gruvbox`, `one-dark`, `rose-pine`, `princess`, `one-shell`, `blueish`
 
 ## Database support
@@ -52,7 +53,7 @@ curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh
 To install a specific version:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh -s -- v0.8.0
+curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh -s -- v0.9.0
 ```
 
 **Homebrew** (macOS):

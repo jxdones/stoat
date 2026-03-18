@@ -218,3 +218,43 @@ func Test_SolarizedTheme_has_expected_styling_fields_set(t *testing.T) {
 		}
 	}
 }
+
+func Test_all_themes_have_syntax_and_sidebar_selected_fields_set(t *testing.T) {
+	themes := []struct {
+		name  string
+		theme Theme
+	}{
+		{"default", DefaultTheme()},
+		{"dracula", DraculaTheme()},
+		{"solarized", SolarizedTheme()},
+		{"catppuccin", CatppuccinTheme()},
+		{"everforest", EverforestTheme()},
+		{"gruvbox", GruvboxTheme()},
+		{"one-dark", OneDarkTheme()},
+		{"rose-pine", RosePineTheme()},
+		{"princess", PrincessTheme()},
+		{"one-shell", OneShellTheme()},
+		{"blueish", BlueishTheme()},
+	}
+	for _, tt := range themes {
+		t.Run(tt.name, func(t *testing.T) {
+			fields := []struct {
+				name  string
+				color color.Color
+			}{
+				{"SyntaxKeyword", tt.theme.SyntaxKeyword},
+				{"SyntaxString", tt.theme.SyntaxString},
+				{"SyntaxNumber", tt.theme.SyntaxNumber},
+				{"SyntaxComment", tt.theme.SyntaxComment},
+				{"SyntaxOperator", tt.theme.SyntaxOperator},
+				{"SidebarSelectedBg", tt.theme.SidebarSelectedBg},
+				{"SidebarSelectedFg", tt.theme.SidebarSelectedFg},
+			}
+			for _, f := range fields {
+				if f.color == nil {
+					t.Errorf("field %s is nil", f.name)
+				}
+			}
+		})
+	}
+}

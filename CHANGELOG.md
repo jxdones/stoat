@@ -7,9 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-03-18
+
 ### Added
 
 - **Delete row.** Press `dd` on any row in the Records tab to delete it. When the confirmation prompt appears press `y` to confirm or `n`/`Esc` to cancel. Blocked in read-only mode and when viewing query results. Uses primary key columns for the WHERE clause when available.
+- **SQL syntax highlighting.** The query box now highlights SQL as you type — keywords, strings, numbers, comments, and operators are each colored using the active theme's syntax palette. Falls back to the plain textarea renderer when the input is empty (to preserve placeholder display).
+- **Per-theme syntax colors.** Each built-in theme defines its own `SyntaxKeyword`, `SyntaxString`, `SyntaxNumber`, `SyntaxComment`, and `SyntaxOperator` colors so highlighting feels at home in every colorscheme.
+- **Sidebar selection colors.** Each theme now defines explicit `SidebarSelectedBg` and `SidebarSelectedFg` fields for the active item highlight in both the Databases and Tables sections, replacing the previous reuse of unrelated accent colors.
 
 ## [0.8.0] - 2026-03-17
 

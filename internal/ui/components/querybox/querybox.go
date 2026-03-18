@@ -6,12 +6,13 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/jxdones/stoat/internal/ui/common"
+	"github.com/jxdones/stoat/internal/ui/components/syntaxtextarea"
 	"github.com/jxdones/stoat/internal/ui/theme"
 )
 
 // Model represents a query box with an input textarea.
 type Model struct {
-	input  textarea.Model
+	input  syntaxtextarea.Model
 	width  int
 	height int
 	focus  bool
@@ -25,12 +26,14 @@ func New() Model {
 	ta.ShowLineNumbers = true
 	ta.CharLimit = 10000
 	ta.SetHeight(1)
-
-	ta.SetStyles(themedStyles(ta))
+	ta.SetStyles(themedStyles(ta.Styles()))
 	ta.Focus()
 
+	st := syntaxtextarea.New()
+	st.SetInput(ta)
+
 	return Model{
-		input:  ta,
+		input:  st,
 		width:  40,
 		height: 3,
 		focus:  false,
@@ -40,11 +43,10 @@ func New() Model {
 // ApplyTheme re-applies the current theme colors to the textarea styles.
 // Call this whenever the active theme changes.
 func (m *Model) ApplyTheme() {
-	m.input.SetStyles(themedStyles(m.input))
+	m.input.SetStyles(themedStyles(m.input.Styles()))
 }
 
-func themedStyles(ta textarea.Model) textarea.Styles {
-	styles := ta.Styles()
+func themedStyles(styles textarea.Styles) textarea.Styles {
 	styles.Focused.Prompt = styles.Focused.Prompt.Foreground(theme.Current.TextAccent)
 	styles.Focused.Text = styles.Focused.Text.Foreground(theme.Current.TextPrimary)
 	styles.Focused.CursorLine = styles.Focused.CursorLine.Foreground(theme.Current.TextPrimary)
@@ -126,6 +128,11 @@ func (m Model) View() tea.View {
 	content := common.BorderedPane(m.width, m.height, m.focus, common.FocusBorder(m.focus)).
 		Render(m.input.View())
 	return tea.NewView(content)
+}
+
+// cursor returns the cursor from the underlying textarea, if any.
+func (m Model) Cursor() *tea.Cursor {
+	return m.input.Input().Cursor()
 }
 
 // HelpBindings returns the key bindings for the query box.

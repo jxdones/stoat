@@ -316,7 +316,7 @@ func (m Model) databaseLines(contentWidth int) []string {
 	for i, db := range m.databases {
 		style := lipgloss.NewStyle().Foreground(theme.Current.TextPrimary)
 		if i == m.selectedDB {
-			style = lipgloss.NewStyle().Foreground(theme.Current.TextHeader).Background(theme.Current.BorderFocused).Bold(true)
+			style = lipgloss.NewStyle().Foreground(theme.Current.SidebarSelectedFg).Background(theme.Current.SidebarSelectedBg).Bold(true)
 		}
 		label := "  " + db
 		out = append(out, style.Render(fit(label, contentWidth)))
@@ -335,7 +335,7 @@ func (m Model) tableLines(contentWidth int) []string {
 			style = lipgloss.NewStyle().Foreground(theme.Current.TextMuted)
 		}
 		if i == m.selectedTable && m.openedDB >= 0 {
-			style = lipgloss.NewStyle().Foreground(theme.Current.TextHeader).Background(theme.Current.TextAccent).Bold(true)
+			style = lipgloss.NewStyle().Foreground(theme.Current.SidebarSelectedFg).Background(theme.Current.SidebarSelectedBg).Bold(true)
 		}
 
 		label := "  " + table
