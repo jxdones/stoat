@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-03-18
+
+### Fixed
+
+- **SQL textarea wrapping.** Long lines in the query box now soft-wrap correctly, matching the underlying textarea's word-wrap algorithm. Fixes blank renders when a line scrolled past the viewport, double-subtraction of prefix width, and cursor misalignment on wrapped lines.
+
 ## [0.9.0] - 2026-03-18
 
 ### Added

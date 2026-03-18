@@ -1,15 +1,20 @@
+// Package syntaxtextarea provides a textarea component with SQL syntax highlighting.
+// It wraps bubbles/textarea for all input handling and replaces View() with a
+// custom renderer that injects chroma-colored tokens and a block cursor.
 package syntaxtextarea
 
 import (
 	"fmt"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"charm.land/bubbles/v2/textarea"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/lexers"
+	"github.com/rivo/uniseg"
 
 	"github.com/jxdones/stoat/internal/ui/theme"
 )
@@ -72,9 +77,15 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	return m, cmd
 }
 
-// segment is a styled piece of text.
+// segment is a styled piece of text from the chroma tokenizer.
 type segment struct {
 	text  string
+	style lipgloss.Style
+}
+
+// runeStyle pairs a single rune with its syntax style.
+type runeStyle struct {
+	r     rune
 	style lipgloss.Style
 }
 
@@ -116,91 +127,169 @@ func tokenize(sql string) []segment {
 	return segments
 }
 
-// buildLines converts token segments into rendered line strings, inserting a
-// block cursor at (cursorRow, cursorCharCol).
-func buildLines(segments []segment, cursorRow, cursorCharCol int) []string {
+// rsDisplayWidth returns the total visual display width of a runeStyle slice.
+func rsDisplayWidth(rs []runeStyle) int {
+	var w int
+	for _, r := range rs {
+		w += uniseg.StringWidth(string(r.r))
+	}
+	return w
+}
+
+// wrapRuneStyles soft-wraps rs into visual sub-rows at textWidth using the same
+// word-wrap algorithm as the underlying textarea (see textarea.wrap).
+func wrapRuneStyles(rs []runeStyle, textWidth int) [][]runeStyle {
+	if textWidth <= 0 || len(rs) == 0 {
+		return [][]runeStyle{rs}
+	}
+
+	var (
+		rows   = [][]runeStyle{{}}
+		word   []runeStyle
+		row    int
+		spaces int
+	)
+
+	// spaceStyle returns the style to use for flushed space characters.
+	spaceStyle := func() lipgloss.Style {
+		if len(word) > 0 {
+			return word[len(word)-1].style
+		}
+		if len(rows[row]) > 0 {
+			return rows[row][len(rows[row])-1].style
+		}
+		return lipgloss.NewStyle()
+	}
+
+	for _, rr := range rs {
+		if unicode.IsSpace(rr.r) {
+			spaces++
+		} else {
+			word = append(word, rr)
+		}
+
+		if spaces > 0 {
+			ss := spaceStyle()
+			if rsDisplayWidth(rows[row])+rsDisplayWidth(word)+spaces > textWidth {
+				row++
+				rows = append(rows, []runeStyle{})
+				rows[row] = append(rows[row], word...)
+				for range spaces {
+					rows[row] = append(rows[row], runeStyle{' ', ss})
+				}
+			} else {
+				rows[row] = append(rows[row], word...)
+				for range spaces {
+					rows[row] = append(rows[row], runeStyle{' ', ss})
+				}
+			}
+			spaces = 0
+			word = nil
+		} else if len(word) > 0 {
+			lastW := uniseg.StringWidth(string(word[len(word)-1].r))
+			if rsDisplayWidth(word)+lastW > textWidth {
+				if len(rows[row]) > 0 {
+					row++
+					rows = append(rows, []runeStyle{})
+				}
+				rows[row] = append(rows[row], word...)
+				word = nil
+			}
+		}
+	}
+
+	// Final flush with one trailing space — mirrors textarea.wrap().
+	ss := spaceStyle()
+	if rsDisplayWidth(rows[row])+rsDisplayWidth(word)+spaces >= textWidth {
+		row++
+		rows = append(rows, []runeStyle{})
+		rows[row] = append(rows[row], word...)
+		spaces++
+		for range spaces {
+			rows[row] = append(rows[row], runeStyle{' ', ss})
+		}
+	} else {
+		rows[row] = append(rows[row], word...)
+		spaces++
+		for range spaces {
+			rows[row] = append(rows[row], runeStyle{' ', ss})
+		}
+	}
+
+	return rows
+}
+
+// visualLine is one soft-wrapped display row.
+type visualLine struct {
+	content  string
+	hardLine int // 0-indexed hard line
+	subRow   int // 0 = first sub-row of the hard line, >0 = soft-wrap continuation
+}
+
+// buildLines converts token segments into soft-wrapped visual lines, injecting a
+// block cursor at the position identified by (cursorHardRow, cursorSubRow, cursorColOffset).
+//
+//   - cursorHardRow   = m.input.Line()                  hard (\n-delimited) line index
+//   - cursorSubRow    = m.input.LineInfo().RowOffset     soft-wrapped sub-row within that line
+//   - cursorColOffset = m.input.LineInfo().ColumnOffset  rune index within that sub-row
+func buildLines(segments []segment, textWidth, cursorHardRow, cursorSubRow, cursorColOffset int) []visualLine {
 	cursorStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#000000")).
 		Background(theme.Current.TextPrimary)
 
-	// lineSegs accumulates styled segments per hard line.
-	type lineSeg struct {
-		text  string
-		style lipgloss.Style
-	}
-	lines := [][]lineSeg{{}}
+	// Phase 1: split segments into per-hard-line runeStyle slices.
+	hardLines := [][]runeStyle{{}}
 	lineIdx := 0
-	charPos := 0 // character offset within the current hard line
-
 	for _, seg := range segments {
-		remaining := []rune(seg.text)
-		for len(remaining) > 0 {
-			// Find next newline within remaining runes.
-			nl := -1
-			for i, r := range remaining {
-				if r == '\n' {
-					nl = i
-					break
-				}
-			}
-
-			var part []rune
-			var hasNewline bool
-			if nl == -1 {
-				part = remaining
-				remaining = nil
-			} else {
-				part = remaining[:nl]
-				remaining = remaining[nl+1:]
-				hasNewline = true
-			}
-
-			if lineIdx == cursorRow && len(part) > 0 {
-				partEnd := charPos + len(part)
-				if cursorCharCol >= charPos && cursorCharCol < partEnd {
-					// Cursor falls within this segment.
-					rel := cursorCharCol - charPos
-					if rel > 0 {
-						lines[lineIdx] = append(lines[lineIdx], lineSeg{string(part[:rel]), seg.style})
-					}
-					lines[lineIdx] = append(lines[lineIdx], lineSeg{string(part[rel : rel+1]), cursorStyle})
-					if rel+1 < len(part) {
-						lines[lineIdx] = append(lines[lineIdx], lineSeg{string(part[rel+1:]), seg.style})
-					}
-				} else {
-					if len(part) > 0 {
-						lines[lineIdx] = append(lines[lineIdx], lineSeg{string(part), seg.style})
-					}
-				}
-				charPos = partEnd
-			} else {
-				if len(part) > 0 {
-					lines[lineIdx] = append(lines[lineIdx], lineSeg{string(part), seg.style})
-				}
-			}
-
-			if hasNewline {
+		for _, r := range seg.text {
+			if r == '\n' {
 				lineIdx++
-				charPos = 0
-				lines = append(lines, []lineSeg{})
+				hardLines = append(hardLines, []runeStyle{})
+			} else {
+				hardLines[lineIdx] = append(hardLines[lineIdx], runeStyle{r, seg.style})
 			}
 		}
 	}
 
-	// Cursor at end of line (past all tokens on that line).
-	if lineIdx == cursorRow && charPos == cursorCharCol {
-		lines[lineIdx] = append(lines[lineIdx], lineSeg{" ", cursorStyle})
+	// Phase 2: soft-wrap each hard line and render, injecting the cursor.
+	var result []visualLine
+	for hardIdx, hl := range hardLines {
+		subRows := wrapRuneStyles(hl, textWidth)
+		isCursorHardLine := hardIdx == cursorHardRow
+
+		for subIdx, subRow := range subRows {
+			isCursorRow := isCursorHardLine && subIdx == cursorSubRow
+
+			var sb strings.Builder
+			if isCursorRow {
+				colPos := 0
+				cursorPlaced := false
+				for _, rr := range subRow {
+					if !cursorPlaced && colPos == cursorColOffset {
+						sb.WriteString(cursorStyle.Render(string(rr.r)))
+						cursorPlaced = true
+					} else {
+						sb.WriteString(rr.style.Render(string(rr.r)))
+					}
+					colPos++
+				}
+				if !cursorPlaced {
+					sb.WriteString(cursorStyle.Render(" "))
+				}
+			} else {
+				for _, rr := range subRow {
+					sb.WriteString(rr.style.Render(string(rr.r)))
+				}
+			}
+
+			result = append(result, visualLine{
+				content:  sb.String(),
+				hardLine: hardIdx,
+				subRow:   subIdx,
+			})
+		}
 	}
 
-	// Render each line.
-	result := make([]string, len(lines))
-	for i, line := range lines {
-		var sb strings.Builder
-		for _, ls := range line {
-			sb.WriteString(ls.style.Render(ls.text))
-		}
-		result[i] = sb.String()
-	}
 	return result
 }
 
@@ -212,63 +301,60 @@ func (m Model) View() string {
 		return m.input.View()
 	}
 
+	// m.input.Width() is the text-only width: the underlying textarea already
+	// subtracts prompt width, line number width, and border from the set width
+	// in SetWidth(). Do NOT subtract prefixes again here.
+	textWidth := max(1, m.input.Width())
+
 	prompt := m.input.Prompt
-	promptWidth := lipgloss.Width(prompt)
 	showLineNumbers := m.input.ShowLineNumbers
 
-	totalLines := strings.Count(value, "\n") + 1
-	lineNumDigits := len(strconv.Itoa(totalLines))
+	// Line number column width matches what SetWidth reserved:
+	// numDigits(MaxHeight) + gap(2) = e.g. 2 + 2 = 4 for MaxHeight=99.
+	lineNumDigits := len(strconv.Itoa(m.input.MaxHeight))
 
+	li := m.input.LineInfo()
 	segments := tokenize(value)
-	cursorRow := m.input.Line()
-	cursorCharCol := m.input.LineInfo().CharOffset
+	visualLines := buildLines(segments, textWidth, m.input.Line(), li.RowOffset, li.ColumnOffset)
 
-	coloredLines := buildLines(segments, cursorRow, cursorCharCol)
-
-	width := m.input.Width()
 	height := m.input.Height()
+	scrollOffset := m.input.ScrollYOffset()
+	start := min(scrollOffset, len(visualLines))
+	end := min(start+height, len(visualLines))
+	visible := visualLines[start:end]
 
 	promptStyle := lipgloss.NewStyle().Foreground(theme.Current.TextAccent)
 	lineNumStyle := lipgloss.NewStyle().Foreground(theme.Current.TextMuted)
 
-	// Respect the textarea's viewport — only show `height` lines starting at scrollOffset.
-	scrollOffset := m.input.ScrollYOffset()
-	start := min(scrollOffset, len(coloredLines))
-	end := min(start+height, len(coloredLines))
-	visibleLines := coloredLines[start:end]
-
 	var sb strings.Builder
-	for i, line := range visibleLines {
-		actualLineIdx := start + i
-
-		// Prompt
+	for i, vl := range visible {
 		sb.WriteString(promptStyle.Render(prompt))
 
-		// Line number
-		lineNumStr := ""
 		if showLineNumbers {
-			lineNumStr = fmt.Sprintf("  %*d ", lineNumDigits, actualLineIdx+1)
+			var lineNumStr string
+			if vl.subRow == 0 {
+				lineNumStr = fmt.Sprintf(" %*d ", lineNumDigits, vl.hardLine+1)
+			} else {
+				lineNumStr = fmt.Sprintf(" %*s ", lineNumDigits, "")
+			}
 			sb.WriteString(lineNumStyle.Render(lineNumStr))
 		}
 
-		// Text content — width minus prompt and line number
-		prefixWidth := promptWidth + lipgloss.Width(lineNumStr)
-		textWidth := max(1, width-prefixWidth)
-		sb.WriteString(lipgloss.NewStyle().Width(textWidth).Render(line))
+		sb.WriteString(lipgloss.NewStyle().Width(textWidth).Render(vl.content))
 
-		if i < len(visibleLines)-1 {
+		if i < len(visible)-1 {
 			sb.WriteRune('\n')
 		}
 	}
 
 	// Pad remaining height with blank lines.
-	for i := len(visibleLines); i < height; i++ {
+	for i := len(visible); i < height; i++ {
 		if i > 0 {
 			sb.WriteRune('\n')
 		}
 		sb.WriteString(promptStyle.Render(prompt))
 		if showLineNumbers {
-			sb.WriteString(lipgloss.NewStyle().Width(lineNumDigits + 2).Render(""))
+			sb.WriteString(lineNumStyle.Render(fmt.Sprintf(" %*s ", lineNumDigits, "")))
 		}
 	}
 

@@ -7,7 +7,7 @@
   <p>The database client for people who don't leave the terminal.</p>
 
   <p>
-    <img src="assets/stoat.gif" alt="Stoat demo" width="720"/>
+    <img src="assets/stoat.gif" alt="Stoat demo" width="830"/>
   </p>
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
@@ -53,7 +53,7 @@ curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh
 To install a specific version:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh -s -- v0.9.0
+curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh -s -- v0.9.1
 ```
 
 **Homebrew** (macOS):

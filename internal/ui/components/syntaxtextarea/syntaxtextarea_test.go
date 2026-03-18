@@ -104,7 +104,7 @@ func TestBuildLines(t *testing.T) {
 			},
 			cursorRow:      0,
 			cursorCharCol:  2,
-			wantPlainLines: []string{"SELECT"},
+			wantPlainLines: []string{"SELECT "},
 			wantLineCount:  1,
 			wantANSIOnLine: 0,
 		},
@@ -126,7 +126,7 @@ func TestBuildLines(t *testing.T) {
 			},
 			cursorRow:      1,
 			cursorCharCol:  1,
-			wantPlainLines: []string{"a", "bc"},
+			wantPlainLines: []string{"a ", "bc "},
 			wantLineCount:  2,
 			wantANSIOnLine: 1,
 		},
@@ -137,7 +137,7 @@ func TestBuildLines(t *testing.T) {
 			},
 			cursorRow:      1,
 			cursorCharCol:  0,
-			wantPlainLines: []string{"a", " "},
+			wantPlainLines: []string{"a ", " "},
 			wantLineCount:  2,
 			wantANSIOnLine: 1,
 		},
@@ -149,7 +149,7 @@ func TestBuildLines(t *testing.T) {
 			},
 			cursorRow:      0,
 			cursorCharCol:  2,
-			wantPlainLines: []string{"abcd"},
+			wantPlainLines: []string{"abcd "},
 			wantLineCount:  1,
 			wantANSIOnLine: 0,
 		},
@@ -157,13 +157,15 @@ func TestBuildLines(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := buildLines(tt.segments, tt.cursorRow, tt.cursorCharCol)
+			// textWidth=1000 so none of the test cases trigger soft-wrapping.
+			// cursorSubRow=0 because all test inputs fit on a single visual row.
+			got := buildLines(tt.segments, 1000, tt.cursorRow, 0, tt.cursorCharCol)
 			if len(got) != tt.wantLineCount {
 				t.Fatalf("buildLines() line count = %d, want %d", len(got), tt.wantLineCount)
 			}
 
-			for i, line := range got {
-				plain := testutil.StripANSI(line)
+			for i, vl := range got {
+				plain := testutil.StripANSI(vl.content)
 				if i >= len(tt.wantPlainLines) {
 					t.Fatalf("unexpected extra line %d: %q", i, plain)
 				}
@@ -173,8 +175,8 @@ func TestBuildLines(t *testing.T) {
 			}
 
 			if tt.wantANSIOnLine >= 0 && tt.wantANSIOnLine < len(got) {
-				if !ansiRE.MatchString(got[tt.wantANSIOnLine]) {
-					t.Fatalf("expected ANSI styling on line %d, got %q", tt.wantANSIOnLine, got[tt.wantANSIOnLine])
+				if !ansiRE.MatchString(got[tt.wantANSIOnLine].content) {
+					t.Fatalf("expected ANSI styling on line %d, got %q", tt.wantANSIOnLine, got[tt.wantANSIOnLine].content)
 				}
 			}
 		})
