@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Help shows tab-switch shortcuts.** The help panel now documents `Ctrl+1` through `Ctrl+5` for quickly switching between tabs.
+- **Column-specific filter syntax.** The filter now accepts two new forms alongside the existing plain text search:
+  - `column = value` — case-insensitive exact match (e.g. `first_name = penelope` matches `PENELOPE`)
+  - `column = "value"` — case-sensitive substring match (e.g. `title = "ACAD"` matches `ACADEMY DINOSAUR` but `title = "acad"` does not)
+  - Re-filtering always works against the full loaded page, not the previous filtered result
+  - Filter works on query results; clearing the filter while viewing a query result restores the full result instead of reloading a table
 
 ### Changed
 

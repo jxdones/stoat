@@ -75,6 +75,7 @@ type Model struct {
 	connectionPicker connectionpicker.Model
 	paging           pagingState
 	savedQueries     []SavedQuery
+	unfilteredRows   []table.Row // rows before any filter is applied; always holds the current page from the DB
 
 	// tablePKColumns are primary key column names for the table last loaded; used to build
 	// a safe WHERE clause when generating UPDATE from a cell. tablePKTarget identifies

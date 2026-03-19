@@ -17,7 +17,7 @@ type Model struct {
 // New creates a new filter box model with the default configuration.
 func New() Model {
 	ti := textinput.New()
-	ti.Placeholder = "e.g. NLD or Dutch"
+	ti.Placeholder = "e.g. John Doe or username = 'jdoe'"
 	ti.CharLimit = 512
 	ti.SetWidth(50)
 	styles := ti.Styles()

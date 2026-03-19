@@ -65,12 +65,12 @@ func TestValue_SetValue(t *testing.T) {
 		},
 		{
 			name:      "set_filter_text",
-			setValues: []string{"NLD"},
-			wantValue: "NLD",
+			setValues: []string{"John Doe"},
+			wantValue: "John Doe",
 		},
 		{
 			name:      "set_empty_clears",
-			setValues: []string{"Dutch", ""},
+			setValues: []string{"John Doe", ""},
 			wantValue: "",
 		},
 	}
@@ -168,8 +168,8 @@ func TestView(t *testing.T) {
 			}
 			if regexp.MustCompile(regexp.QuoteMeta(tt.wantContains)).FindString(plain) == "" {
 				if tt.setValue == "" {
-					if regexp.MustCompile(`e\.g\. NLD or Dutch`).FindString(plain) == "" {
-						t.Errorf("View() plain should contain %q or placeholder (e.g. NLD or Dutch); got: %q", tt.wantContains, plain)
+					if regexp.MustCompile(`e\.g\. John Doe`).FindString(plain) == "" {
+						t.Errorf("View() plain should contain %q or placeholder (e.g. John Doe or username = 'jdoe'); got: %q", tt.wantContains, plain)
 					}
 				} else {
 					t.Errorf("View() plain should contain %q; got: %q", tt.wantContains, plain)
