@@ -75,7 +75,7 @@ curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh
 To install a specific version:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh -s -- v0.10.2
+curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh -s -- v0.11.0
 ```
 
 **Homebrew** (macOS):

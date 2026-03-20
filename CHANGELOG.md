@@ -7,9 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-03-20
+
 ### Added
 
 - **Paste now works in inline cell edit mode.** Pressing the system paste shortcut while editing a cell inline now inserts the clipboard content at the cursor position.
+- **Table columns now fill the available width.** Column widths are now computed in two passes: first, each column's minimum width is derived from the widest cell value in the current page (capped at 50 chars) rather than the header name alone. Second, any horizontal space left after placing the visible columns is distributed proportionally among them, wider columns receive a larger share. Tables with only a few columns no longer leave a large blank area on the right.
+
+### Fixed
+- **UPDATE and DELETE queries failing** with `"relation does not exist` on Postgres when the active schema is not in the connection's search_path.
 
 ## [0.10.2] - 2026-03-20
 
