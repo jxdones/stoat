@@ -325,7 +325,7 @@ func Query(ctx context.Context, db *sql.DB, query string) (database.QueryResult,
 			Key:      column,
 			Title:    column,
 			Type:     "text", // we don't infer types from ad-hoc queries; "text" is safe for display
-			MinWidth: max(database.MinColumnWidth, min(database.MaxColumnWidth, len([]rune(column))+database.ColumnNamePad)),
+			MinWidth: database.ColumnMinWidth(len([]rune(column))),
 			Order:    i + 1, // 1-based position so UI can sort columns (e.g. Order 1 = first column)
 		})
 	}

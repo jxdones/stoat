@@ -225,7 +225,7 @@ func Query(ctx context.Context, db *sql.DB, query string) (database.QueryResult,
 			Key:      column,
 			Title:    column,
 			Type:     "text",
-			MinWidth: max(database.MinColumnWidth, min(database.MaxColumnWidth, len([]rune(column))+database.ColumnNamePad)),
+			MinWidth: database.ColumnMinWidth(len([]rune(column))),
 			Order:    i + 1,
 		})
 	}
@@ -482,20 +482,20 @@ func Indexes(ctx context.Context, db *sql.DB, target database.DatabaseTarget) ([
 // columnInfoRows returns the list of columns for the given table.
 func columnInfoRows(ctx context.Context, db *sql.DB, schema, table string) ([]columnInfo, error) {
 	rows, err := db.QueryContext(ctx, `
-		SELECT 
+		SELECT
 			c.column_name,
 			c.data_type,
-			kcu.ordinal_position as pk_order
+			kcu.ordinal_position AS pk_order
 		FROM information_schema.columns c
-		LEFT JOIN information_schema.key_column_usage kcu
-			ON c.table_schema = kcu.table_schema
-			AND c.table_name = kcu.table_name
-			AND c.column_name = kcu.column_name
 		LEFT JOIN information_schema.table_constraints tc
-			ON tc.constraint_name = kcu.constraint_name
-			AND tc.table_schema = kcu.table_schema
-			AND tc.table_name = kcu.table_name
+			ON tc.table_schema = c.table_schema
+			AND tc.table_name = c.table_name
 			AND tc.constraint_type = 'PRIMARY KEY'
+		LEFT JOIN information_schema.key_column_usage kcu
+			ON kcu.constraint_name = tc.constraint_name
+			AND kcu.table_schema = c.table_schema
+			AND kcu.table_name = c.table_name
+			AND kcu.column_name = c.column_name
 		WHERE c.table_schema = $1
 			AND c.table_name = $2
 		ORDER BY c.ordinal_position ASC;
@@ -697,12 +697,11 @@ func buildOutputColumns(columnsInfo []columnInfo) []database.Column {
 		if declaredType == "" {
 			declaredType = "text"
 		}
-		widthFromName := len([]rune(column.Name)) + database.ColumnNamePad
 		columns = append(columns, database.Column{
 			Key:      column.Name,
 			Title:    column.Name,
 			Type:     strings.ToLower(declaredType),
-			MinWidth: max(database.MinColumnWidth, min(database.MaxColumnWidth, widthFromName)),
+			MinWidth: database.ColumnMinWidth(len([]rune(column.Name))),
 			Order:    i + 1, // preserve table column order (1-based for display)
 		})
 	}

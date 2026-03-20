@@ -7,9 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-03-19
+
 ### Fixed
 
 - **`EXPLAIN` queries now return results on Postgres.** Running `EXPLAIN` or `EXPLAIN ANALYZE` in the query box was showing "0 row(s) affected" instead of the query plan. The Postgres query executor was routing any non-`SELECT` statement through `ExecContext`, discarding the result set. `EXPLAIN` is now correctly routed through `QueryContext`.
+- **Duplicate columns no longer appear for tables with multi-constraint columns.** Columns that participate in more than one constraint (e.g. a FK and a UNIQUE index) were showing up multiple times in the Records tab. The schema query was joining `key_column_usage` before filtering to PK constraints, causing one row per constraint per column. The join order is now fixed so only the PK constraint row is matched, giving exactly one entry per column.
 
 ## [0.10.0] - 2026-03-19
 

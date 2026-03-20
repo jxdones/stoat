@@ -150,3 +150,9 @@ func PrimaryKeyOrderExpr(primaryKeyColumns []string) string {
 	}
 	return strings.Join(out, ", ")
 }
+
+// ColumnMinWidth returns the minimum display width for a column based on the
+// header name length, clamped between MinColumnWidth and MaxColumnWidth.
+func ColumnMinWidth(headerLen int) int {
+	return max(MinColumnWidth, min(MaxColumnWidth, headerLen+ColumnNamePad))
+}
