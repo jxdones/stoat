@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`EXPLAIN` queries now return results on Postgres.** Running `EXPLAIN` or `EXPLAIN ANALYZE` in the query box was showing "0 row(s) affected" instead of the query plan. The Postgres query executor was routing any non-`SELECT` statement through `ExecContext`, discarding the result set. `EXPLAIN` is now correctly routed through `QueryContext`.
+
 ## [0.10.0] - 2026-03-19
 
 ### Added

@@ -524,6 +524,25 @@ func TestQuery(t *testing.T) {
 			checkFirstRow:   map[string]string{"customer_id": "1", "total_spent": "30.5"},
 		},
 		{
+			name: "explain_query_plan_returns_rows",
+			setupDB: func(t *testing.T) *sql.DB {
+				db, err := sql.Open("sqlite3", ":memory:")
+				if err != nil {
+					t.Fatalf("open in-memory db: %v", err)
+				}
+				t.Cleanup(func() { _ = db.Close() })
+				_, err = db.ExecContext(ctx, "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT);")
+				if err != nil {
+					t.Fatalf("create table: %v", err)
+				}
+				return db
+			},
+			query:           "EXPLAIN QUERY PLAN SELECT * FROM users",
+			wantErr:         false,
+			wantColumnCount: 4,
+			wantRowCount:    1,
+		},
+		{
 			name: "group_by_with_trailing_semicolon",
 			setupDB: func(t *testing.T) *sql.DB {
 				db, err := sql.Open("sqlite3", ":memory:")

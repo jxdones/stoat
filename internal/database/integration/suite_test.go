@@ -91,6 +91,22 @@ func testIndexes(t *testing.T, conn database.Connection, target database.Databas
 	}
 }
 
+func testQuery(t *testing.T, conn database.Connection, query string, wantMinRows, wantMinColumns int) {
+	t.Helper()
+	ctx := context.Background()
+
+	result, err := conn.Query(ctx, query)
+	if err != nil {
+		t.Fatalf("Query(%q) error: %v", query, err)
+	}
+	if len(result.Columns) < wantMinColumns {
+		t.Fatalf("Query(%q) column count = %d, want >= %d", query, len(result.Columns), wantMinColumns)
+	}
+	if len(result.Rows) < wantMinRows {
+		t.Fatalf("Query(%q) row count = %d, want >= %d", query, len(result.Rows), wantMinRows)
+	}
+}
+
 func testConstraints(t *testing.T, conn database.Connection, target database.DatabaseTarget, expectedCount int) {
 	t.Helper()
 	ctx := context.Background()

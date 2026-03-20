@@ -151,6 +151,34 @@ func TestPostgresIndexes(t *testing.T) {
 	}
 }
 
+func TestPostgresQuery(t *testing.T) {
+	tests := []struct {
+		name           string
+		query          string
+		wantMinRows    int
+		wantMinColumns int
+	}{
+		{
+			name:           "explain_returns_rows",
+			query:          "EXPLAIN SELECT * FROM users",
+			wantMinRows:    1,
+			wantMinColumns: 1,
+		},
+		{
+			name:           "explain_analyze_returns_rows",
+			query:          "EXPLAIN ANALYZE SELECT * FROM users",
+			wantMinRows:    1,
+			wantMinColumns: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testQuery(t, pgConn, tt.query, tt.wantMinRows, tt.wantMinColumns)
+		})
+	}
+}
+
 func TestPostgresConstraints(t *testing.T) {
 	tests := []struct {
 		table         string

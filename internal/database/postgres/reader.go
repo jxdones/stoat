@@ -161,7 +161,8 @@ func Query(ctx context.Context, db *sql.DB, query string) (database.QueryResult,
 	columnNames := make([]string, 0)
 	resultRows := make([]database.Row, 0, min(maxRows, queryResultCap))
 
-	shouldReturnRows := strings.Fields(strings.TrimSpace(strings.ToUpper(query)))[0] == "SELECT"
+	firstKeyword := strings.Fields(strings.TrimSpace(strings.ToUpper(query)))[0]
+	shouldReturnRows := firstKeyword == "SELECT" || firstKeyword == "EXPLAIN"
 	if shouldReturnRows {
 		rows, err := db.QueryContext(ctx, query)
 		if err != nil {
