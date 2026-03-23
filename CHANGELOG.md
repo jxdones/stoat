@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Cell detail modal now wraps long text content.** Long text values no longer render as a single horizontal line requiring sideways scrolling — content wraps to the modal width. The modal height adjusts to fit the wrapped content. JSON columns are unaffected.
+
 ## [0.13.0] - 2026-03-22
 
 ### Changed

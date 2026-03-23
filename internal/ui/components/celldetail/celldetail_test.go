@@ -76,6 +76,44 @@ func TestPreferredHeight(t *testing.T) {
 	}
 }
 
+func TestPreferredHeightWrapping(t *testing.T) {
+	tests := []struct {
+		name         string
+		width        int
+		content      string
+		max          int
+		wantMinLines int // wrapped result must produce at least this many lines
+	}{
+		{
+			name:         "long_single_line_wraps_to_multiple_lines",
+			width:        20,
+			content:      "This is a very long text value that should wrap across multiple lines when the viewport is narrow",
+			max:          30,
+			wantMinLines: 3,
+		},
+		{
+			name:         "short_content_does_not_wrap",
+			width:        40,
+			content:      "short",
+			max:          30,
+			wantMinLines: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := New()
+			m.SetSize(tt.width, 20)
+			m = m.SetContent("col", "text", tt.content)
+			got := m.PreferredHeight(tt.max)
+			wantMin := modalVerticalChrome + tt.wantMinLines
+			if got < wantMin {
+				t.Errorf("PreferredHeight(%d) = %d, want >= %d (content should have wrapped)", tt.max, got, wantMin)
+			}
+		})
+	}
+}
+
 // TestModalHeightConsistency is a regression test for the lipgloss Width bug:
 // long ANSI-colored JSON content was word-wrapping inside the modal border,
 // producing a different number of lines than short content at the same SetSize height.

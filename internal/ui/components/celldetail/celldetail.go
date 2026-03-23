@@ -10,6 +10,7 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/lexers"
+	"github.com/charmbracelet/x/ansi"
 	"github.com/jxdones/stoat/internal/ui/modal"
 	"github.com/jxdones/stoat/internal/ui/theme"
 )
@@ -28,10 +29,11 @@ const (
 
 // Model represents the cell detail modal.
 type Model struct {
-	viewport   viewport.Model
-	colKey     string
-	colType    string
-	rawContent string
+	viewport       viewport.Model
+	colKey         string
+	colType        string
+	rawContent     string
+	wrappedContent string
 }
 
 // New creates a new cell detail modal.
@@ -59,7 +61,14 @@ func (m Model) SetContent(colKey, colType, content string) Model {
 	} else {
 		m.viewport.LeftGutterFunc = viewport.NoGutter
 	}
-	m.viewport.SetContent(displayContent(m.rawContent, m.colType))
+
+	ct := displayContent(m.rawContent, m.colType)
+	if !isJSONColumnType(colType) {
+		ct = ansi.Wrap(ct, m.viewport.Width(), "")
+	}
+
+	m.wrappedContent = ct
+	m.viewport.SetContent(m.wrappedContent)
 	m.viewport.GotoTop()
 	return m
 }
@@ -67,14 +76,17 @@ func (m Model) SetContent(colKey, colType, content string) Model {
 // PreferredHeight returns the ideal total modal height for the current content,
 // capped at maximum. Shrinks to fit short content rather than always using the max.
 func (m Model) PreferredHeight(maximum int) int {
-	lines := strings.Count(m.rawContent, "\n") + 1
+	var lines int
 	if isJSONColumnType(m.colType) {
+		lines = strings.Count(m.rawContent, "\n") + 1
 		var v any
 		if err := json.Unmarshal([]byte(m.rawContent), &v); err == nil {
 			if formatted, err := json.MarshalIndent(v, "", " "); err == nil {
 				lines = strings.Count(string(formatted), "\n") + 1
 			}
 		}
+	} else {
+		lines = strings.Count(m.wrappedContent, "\n") + 1
 	}
 	return min(maximum, modalVerticalChrome+lines)
 }
@@ -107,7 +119,6 @@ func (m Model) View() tea.View {
 	))
 }
 
-// displayContent formats the content for display based on the column type.
 func displayContent(content, colType string) string {
 	if isJSONColumnType(colType) {
 		var v any
@@ -123,13 +134,11 @@ func displayContent(content, colType string) string {
 	return content
 }
 
-// isJSONColumnType reports whether the column type is JSON.
 func isJSONColumnType(colType string) bool {
 	colType = strings.ToLower(strings.TrimSpace(colType))
 	return colType == "json" || colType == "jsonb"
 }
 
-// highlightJSON highlights the JSON content.
 func highlightJSON(content string) string {
 	lexer := lexers.Get("json")
 	if lexer == nil {
@@ -148,7 +157,6 @@ func highlightJSON(content string) string {
 	return sb.String()
 }
 
-// jsonTokenStyle returns the style for a JSON token.
 func jsonTokenStyle(t chroma.TokenType) lipgloss.Style {
 	switch {
 	case t.InCategory(chroma.Keyword):
