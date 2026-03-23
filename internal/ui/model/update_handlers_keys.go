@@ -8,6 +8,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/jxdones/stoat/internal/database"
+	"github.com/jxdones/stoat/internal/ui/components/celldetail"
 	"github.com/jxdones/stoat/internal/ui/components/statusbar"
 	"github.com/jxdones/stoat/internal/ui/components/table"
 )
@@ -35,6 +36,10 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 
 	if m.activeModal == modalConnectionPicker {
 		return m.handleKeyPressInConnectionPicker(msg)
+	}
+
+	if m.activeModal == modalCellDetail {
+		return m.handleKeyPressInCellDetail(msg)
 	}
 
 	switch msg.String() {
@@ -89,6 +94,7 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			m.handlePagingShortcut,
 			m.handleExpandSavedQuery,
 			m.handleCopyCellValueFromTable,
+			m.handleViewCellDetail,
 		}
 		for _, h := range handlers {
 			if next, cmd, handled := h(msg); handled {
@@ -237,4 +243,33 @@ func (m Model) handleReload(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	page := database.PageRequest{Limit: DefaultPageLimit, After: ""}
 	spinnerCmd := m.statusbar.StartSpinner("Loading "+tableName, statusbar.Info)
 	return m, tea.Batch(spinnerCmd, LoadTableRowsCmd(m.source, target, page))
+}
+
+// handleViewCellDetail handles the view cell detail shortcut key press.
+func (m Model) handleViewCellDetail(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
+	if msg.String() != "v" || m.view.focus != FocusTable {
+		return m, nil, false
+	}
+	column, value, ok := m.table.ActiveCell()
+	if !ok {
+		return m, nil, false
+	}
+	cd := m.cellDetail.SetContent(column.Key, column.Type, value)
+	m.cellDetail = cd
+	m.activeModal = modalCellDetail
+	return m, nil, true
+}
+
+// handleKeyPressInCellDetail handles the key press in the cell detail modal.
+func (m Model) handleKeyPressInCellDetail(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	next, event := m.cellDetail.Update(msg)
+	m.cellDetail = next
+
+	switch event {
+	case celldetail.EventClosed:
+		m.activeModal = modalNone
+	case celldetail.EventNone:
+		return m, nil
+	}
+	return m, nil
 }

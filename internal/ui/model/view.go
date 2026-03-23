@@ -19,7 +19,6 @@ import (
 	"github.com/jxdones/stoat/internal/ui/components/shortcuts"
 	"github.com/jxdones/stoat/internal/ui/components/sidebar"
 	"github.com/jxdones/stoat/internal/ui/components/table"
-	"github.com/jxdones/stoat/internal/ui/modal"
 	"github.com/jxdones/stoat/internal/ui/theme"
 )
 
@@ -33,8 +32,6 @@ const (
 	minPaneInnerHeight = 1
 	helpBorderHeight   = 1
 	helpTitleHeight    = 1
-
-	bottomChromeRows = 3 // status bar + shortcuts bar rows, excluded from modal vertical centering
 
 	noDataSourcePlaceholder      = "No data source connected.\n\nPress Esc then q to exit, or Ctrl+C"
 	selectTablePlaceholder       = "Select a table from the sidebar and press Enter to view data."
@@ -356,17 +353,16 @@ func (m Model) renderOptions() string {
 // renderModal renders the active modal centered over the base canvas.
 // The base content is dimmed around the modal to create depth.
 func (m Model) renderModal(base string) string {
-	var title, content string
-	var modalWidth int
+	var overlayStr string
 	switch m.activeModal {
 	case modalConnectionPicker:
-		title = "Connections"
-		content = m.connectionPicker.View()
-		modalWidth = 50
+		overlayStr = m.connectionPicker.View().Content
+	case modalCellDetail:
+		overlayStr = m.cellDetail.View().Content
+	default:
+		return base
 	}
-
-	overlayStr := modal.Render(title, content, "j/k navigate · enter select · esc close", modalWidth)
-	return overlayAtCenter(base, overlayStr, m.view.width, m.view.height-bottomChromeRows)
+	return overlayAtCenter(base, overlayStr, m.view.width, m.view.height)
 }
 
 // expandedOptionsHeight returns the number of rows the expanded help area

@@ -8,8 +8,11 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/jxdones/stoat/internal/config"
 	"github.com/jxdones/stoat/internal/ui/keys"
+	"github.com/jxdones/stoat/internal/ui/modal"
 	"github.com/jxdones/stoat/internal/ui/theme"
 )
+
+const modalWidth = 50
 
 type Event int
 
@@ -75,8 +78,8 @@ func (m Model) Update(msg tea.KeyPressMsg) (Model, Event) {
 	return m, EventNone
 }
 
-// View returns the view of the connection picker.
-func (m Model) View() string {
+// View returns the fully rendered modal for the connection picker.
+func (m Model) View() tea.View {
 	lines := make([]string, len(m.connections))
 	for i, conn := range m.connections {
 		if i == m.selected {
@@ -85,5 +88,6 @@ func (m Model) View() string {
 			lines[i] = lipgloss.NewStyle().Foreground(theme.Current.TextPrimary).Render("  " + conn.Name)
 		}
 	}
-	return strings.Join(lines, "\n")
+	content := strings.Join(lines, "\n")
+	return tea.NewView(modal.Render("Connections", content, "j/k navigate · enter select · esc close", modalWidth))
 }

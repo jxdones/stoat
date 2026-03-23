@@ -10,6 +10,7 @@ import (
 	"github.com/jxdones/stoat/internal/config"
 	"github.com/jxdones/stoat/internal/database"
 	"github.com/jxdones/stoat/internal/ui/common"
+	"github.com/jxdones/stoat/internal/ui/components/celldetail"
 	"github.com/jxdones/stoat/internal/ui/components/connectionpicker"
 	"github.com/jxdones/stoat/internal/ui/components/editbox"
 	"github.com/jxdones/stoat/internal/ui/components/filterbox"
@@ -36,6 +37,15 @@ type activeModal int
 const (
 	modalNone activeModal = iota
 	modalConnectionPicker
+	modalCellDetail
+)
+
+const (
+	cellDetailMinWidth     = 40
+	cellDetailMinHeight    = 10
+	cellDetailMaxWidth     = 100
+	cellDetailMaxHeight    = 30
+	cellDetailScreenMargin = 4 // minimum gap between modal edge and screen edge
 )
 
 type tableSchema struct {
@@ -73,6 +83,7 @@ type Model struct {
 	editbox          editbox.Model
 	schemaTable      table.Model // table for displaying the schema of the table
 	connectionPicker connectionpicker.Model
+	cellDetail       celldetail.Model
 	paging           pagingState
 	savedQueries     []SavedQuery
 	unfilteredRows   []table.Row // rows before any filter is applied; always holds the current page from the DB
@@ -114,6 +125,7 @@ func New() Model {
 		table:            table.New(nil, nil),
 		querybox:         querybox.New(),
 		connectionPicker: connectionpicker.New(),
+		cellDetail:       celldetail.New(),
 		view: screenState{
 			width:  80,
 			height: 24,
@@ -214,6 +226,13 @@ func (m *Model) applyViewState() {
 		common.BoxInnerWidth(frame.columns.mainPane),
 		common.PaneInnerHeight(frame.main.table),
 	)
+
+	// target 2/3 of screen width, clamped to min/max bounds and screen margin
+	cdWidth := min(clampRange(m.view.width*2/3, cellDetailMinWidth, cellDetailMaxWidth), m.view.width-cellDetailScreenMargin)
+	// target half of screen height, clamped to min/max bounds and screen margin; shrink to fit short content
+	cdHeight := min(clampRange(m.view.height/2, cellDetailMinHeight, cellDetailMaxHeight), m.view.height-cellDetailScreenMargin)
+	cdHeight = m.cellDetail.PreferredHeight(cdHeight)
+	m.cellDetail.SetSize(cdWidth, cdHeight)
 }
 
 // isFocused checks if the given panel is focused.

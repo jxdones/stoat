@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [0.13.0] - 2026-03-22
+
+### Changed
+
+- **Cell detail viewer (`v`) now shows JSON/JSONB columns formatted and syntax-highlighted by default.** Formatted display is always on for JSON columns.
+- **Cell detail modal now sizes to fit the content.** The modal no longer always opens at half the terminal height; it shrinks to match the actual content, expanding only when the content needs the space.
+
+### Fixed
+
+- **Cell detail modal growing when viewing long JSON on small terminals.** A `Width(N)` call in `modal.Render` was setting the *outer* width of the lipgloss box, leaving the content area 4 chars narrower than the viewport. Long ANSI-colored JSON lines overflowed and word-wrapped, adding a phantom row to the modal.
+- **Cell detail modal not centered correctly.** The overlay was being placed using `height - 3` instead of the full terminal height, shifting the modal toward the top of the screen.
+
 ## [0.12.0] - 2026-03-21
 
 ### Added

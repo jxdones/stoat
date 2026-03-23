@@ -266,6 +266,10 @@ func HelpBindings() []key.Binding {
 			key.WithHelp("y", "copy cell value"),
 		),
 		key.NewBinding(
+			key.WithKeys("v"),
+			key.WithHelp("v", "view cell value"),
+		),
+		key.NewBinding(
 			key.WithKeys("d"),
 			key.WithHelp("dd", "delete row"),
 		),

@@ -166,3 +166,99 @@ func TestHelpExpanded(t *testing.T) {
 		})
 	}
 }
+
+func modelWithJSONBColumn() Model {
+	m := New()
+	m.view.focus = FocusTable
+	m.sidebar.SetDatabases([]string{"mydb"})
+	m.sidebar.SetTables("mydb", []string{"books"})
+	m.sidebar.OpenSelectedDatabase()
+	m.table.SetColumns(dbColumnsToTable([]database.Column{
+		{Key: "metadata", Title: "metadata", Type: "jsonb", MinWidth: 8},
+	}))
+	m.table.SetRows(dbRowsToTable([]database.Row{
+		{"metadata": `{"publisher":"O'Reilly","tags":["go","db"]}`},
+	}))
+	return m
+}
+
+func TestHandleViewCellDetail(t *testing.T) {
+	tests := []struct {
+		name      string
+		setup     func() Model
+		wantModal activeModal
+	}{
+		{
+			name:      "v_on_table_with_data_opens_modal",
+			setup:     modelWithTableFocusAndData,
+			wantModal: modalCellDetail,
+		},
+		{
+			name:      "v_on_jsonb_column_opens_modal",
+			setup:     modelWithJSONBColumn,
+			wantModal: modalCellDetail,
+		},
+		{
+			name: "v_without_table_focus_does_nothing",
+			setup: func() Model {
+				m := modelWithTableFocusAndData()
+				m.view.focus = FocusSidebar
+				return m
+			},
+			wantModal: modalNone,
+		},
+		{
+			name: "v_on_empty_table_does_nothing",
+			setup: func() Model {
+				m := New()
+				m.view.focus = FocusTable
+				return m
+			},
+			wantModal: modalNone,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := tt.setup()
+			result, _ := m.handleKeyPress(keyMsg("v"))
+			got := result.(Model)
+			if got.activeModal != tt.wantModal {
+				t.Errorf("activeModal = %v, want %v", got.activeModal, tt.wantModal)
+			}
+		})
+	}
+}
+
+func TestHandleKeyPressInCellDetail(t *testing.T) {
+	tests := []struct {
+		name      string
+		key       string
+		wantModal activeModal
+	}{
+		{
+			name:      "esc_closes_modal",
+			key:       "esc",
+			wantModal: modalNone,
+		},
+		{
+			name:      "other_key_keeps_modal_open",
+			key:       "j",
+			wantModal: modalCellDetail,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := modelWithTableFocusAndData()
+			opened, _ := m.handleKeyPress(keyMsg("v"))
+			m = opened.(Model)
+
+			result, _ := m.handleKeyPress(keyMsg(tt.key))
+			got := result.(Model)
+			if got.activeModal != tt.wantModal {
+				t.Errorf("activeModal = %v, want %v", got.activeModal, tt.wantModal)
+			}
+		})
+	}
+}

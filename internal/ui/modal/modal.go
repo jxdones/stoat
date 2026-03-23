@@ -8,14 +8,12 @@ import (
 
 const (
 	horizontalPad    = 1
-	borderAndPadding = 4
+	BorderAndPadding = 4
 )
 
 // Render produces a styled modal box with a title, content, and shortcuts footer.
-// width is the outer width of the modal including border and padding.
+// width is the total outer width of the modal including border and padding.
 func Render(title, content, shortcuts string, width int) string {
-	innerWidth := max(width-borderAndPadding, 1)
-
 	titleLine := lipgloss.NewStyle().
 		Foreground(theme.Current.TextHeader).
 		Bold(true).
@@ -28,7 +26,7 @@ func Render(title, content, shortcuts string, width int) string {
 	body := lipgloss.JoinVertical(lipgloss.Top, titleLine, "", content, "", footerLine)
 
 	return lipgloss.NewStyle().
-		Width(innerWidth).
+		Width(width).
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(theme.Current.OverlayBorder).
 		Padding(0, horizontalPad).
