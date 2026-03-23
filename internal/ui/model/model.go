@@ -149,6 +149,7 @@ func (m Model) Init() tea.Cmd {
 		return func() tea.Msg { return ConnectingMsg{cfg: cfg} }
 	}
 	if m.HasConnection() {
+		m.sidebar.SetDatabaseLabel(m.source.DatabaseLabel())
 		return LoadDatabasesCmd(m.source)
 	}
 	return nil

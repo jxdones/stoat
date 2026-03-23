@@ -62,19 +62,21 @@ type Model struct {
 	openedDB      int
 	section       int // 0 for databases, 1 for tables
 
-	width   int
-	height  int
-	focused bool
+	width         int
+	height        int
+	focused       bool
+	databaseLabel string
 }
 
 // New creates a new sidebar model with the given databases and tables.
 func New(databases []string, tables map[string][]string) Model {
 	m := Model{
-		databases: databases,
-		tables:    tables,
-		openedDB:  -1,
-		width:     20,
-		height:    10,
+		databases:     databases,
+		tables:        tables,
+		openedDB:      -1,
+		width:         20,
+		height:        10,
+		databaseLabel: "Databases",
 	}
 	return m
 }
@@ -202,7 +204,7 @@ func (m Model) View() tea.View {
 	}
 
 	lines := make([]string, 0, innerHeight)
-	lines = append(lines, sectionTile(fit("[ Databases ]", contentWidth), m.focused && m.section == 0))
+	lines = append(lines, sectionTile(fit("[ "+m.databaseLabel+" ]", contentWidth), m.focused && m.section == 0))
 	lines = append(lines, viewportLines(m.databaseLines(contentWidth), m.dbOffset, dbRows, contentWidth)...)
 	lines = append(lines, "")
 
@@ -651,4 +653,9 @@ func (m *Model) SelectDatabase(name string) {
 			return
 		}
 	}
+}
+
+// SetDatabaseLabel sets the label for the database.
+func (m *Model) SetDatabaseLabel(label string) {
+	m.databaseLabel = label
 }

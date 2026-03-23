@@ -9,6 +9,7 @@ import (
 // DataSource is the abstraction the UI model uses to load data.
 type DataSource interface {
 	Databases(ctx context.Context) ([]string, error)
+	DatabaseLabel() string
 	Tables(ctx context.Context, database string) ([]string, error)
 	Rows(ctx context.Context, target database.DatabaseTarget, page database.PageRequest) (database.PageResult, error)
 	Query(ctx context.Context, query string) (database.QueryResult, error)
@@ -36,6 +37,11 @@ type connectionSource struct {
 // Databases loads the list of databases from the connection.
 func (s *connectionSource) Databases(ctx context.Context) ([]string, error) {
 	return s.conn.Databases(ctx)
+}
+
+// DatabaseLabel returns the label for the database.
+func (s *connectionSource) DatabaseLabel() string {
+	return s.conn.DatabaseLabel()
 }
 
 // Tables loads the list of tables from the connection.

@@ -72,6 +72,11 @@ func (c *connection) Databases(ctx context.Context) ([]string, error) {
 	return Schemas(ctx, c.db)
 }
 
+// DatabaseLabel returns the label for the database.
+func (c *connection) DatabaseLabel() string {
+	return "Schemas"
+}
+
 // Tables returns the list of table names in the given schema.
 func (c *connection) Tables(ctx context.Context, schema string) ([]string, error) {
 	return Tables(ctx, c.db, schema)

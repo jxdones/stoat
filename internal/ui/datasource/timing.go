@@ -48,6 +48,11 @@ func (t *timingDataSource) Databases(ctx context.Context) ([]string, error) {
 	return t.source.Databases(ctx)
 }
 
+// DatabaseLabel returns the label for the database.
+func (t *timingDataSource) DatabaseLabel() string {
+	return t.source.DatabaseLabel()
+}
+
 // Tables returns the list of tables in the given database.
 func (t *timingDataSource) Tables(ctx context.Context, db string) ([]string, error) {
 	defer t.logTiming("Tables", time.Now())

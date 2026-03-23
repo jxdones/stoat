@@ -69,6 +69,10 @@ func (m mockDataSource) Databases(ctx context.Context) ([]string, error) {
 	return nil, nil
 }
 
+func (m mockDataSource) DatabaseLabel() string {
+	return "Databases"
+}
+
 func (m mockDataSource) Tables(ctx context.Context, databaseName string) ([]string, error) {
 	return nil, nil
 }

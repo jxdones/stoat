@@ -32,6 +32,7 @@ func (m Model) handleConnected(msg ConnectedMsg) (tea.Model, tea.Cmd) {
 	if m.debugOutput != nil {
 		m.source = datasource.WithTiming(m.source, m.debugOutput)
 	}
+	m.sidebar.SetDatabaseLabel(m.source.DatabaseLabel())
 
 	if conn, ok := m.connectionPicker.ConnectionByName(msg.name); ok {
 		m.savedQueries = toModelSavedQueries(conn.SavedQueries)
