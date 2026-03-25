@@ -75,7 +75,7 @@ curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh
 To install a specific version:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh -s -- v0.13.1
+curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh -s -- v0.14.0
 ```
 
 **Homebrew** (macOS):
@@ -115,7 +115,7 @@ Then add `$HOME/.local/bin` to your `PATH` if needed.
 
 ## Database support
 
-SQLite and PostgreSQL are supported. MariaDB is planned.
+SQLite, PostgreSQL, MySQL, and MariaDB are supported.
 
 ## Works with hosted databases
 
@@ -254,6 +254,15 @@ connections:
     password: secret
     database: postgres
     read_only: true   # blocks writes in the UI and at the DB level
+
+  - name: local-mysql
+    type: mysql
+    host: 127.0.0.1
+    port: 3306        # optional, defaults to 3306
+    user: root
+    password: secret
+    database: mydb
+    # tls_mode: true  # set to true for hosted/remote MySQL, skip-verify to skip cert validation
 
 ```
 

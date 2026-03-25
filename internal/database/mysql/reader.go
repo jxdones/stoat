@@ -1,4 +1,4 @@
-package postgres
+package mysql
 
 import (
 	"context"
@@ -10,52 +10,51 @@ import (
 	"github.com/jxdones/stoat/internal/database"
 )
 
-// Schemas returns the list of schemas in the PostgreSQL database.
-func Schemas(ctx context.Context, db *sql.DB) ([]string, error) {
+// Databases returns the list of database names in the given path.
+func Databases(ctx context.Context, db *sql.DB) ([]string, error) {
 	if db == nil {
 		return nil, database.ErrNoConnection
 	}
 
 	rows, err := db.QueryContext(ctx, `
-		SELECT schema_name 
-		FROM information_schema.schemata 
-		WHERE schema_name NOT LIKE 'pg_%' 
-			AND schema_name != 'information_schema'
-		ORDER BY schema_name ASC;
+		SELECT schema_name
+  		FROM information_schema.schemata
+  		WHERE schema_name NOT IN ('information_schema', 'mysql', 'performance_schema', 'sys')
+  		ORDER BY schema_name ASC;
 	`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	schemas := make([]string, 0)
+	databases := make([]string, 0)
 	for rows.Next() {
 		var schema string
 		if err := rows.Scan(&schema); err != nil {
 			return nil, err
 		}
-		schemas = append(schemas, schema)
+		databases = append(databases, schema)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 
-	return schemas, nil
+	return databases, nil
 }
 
-// Tables returns the list of table names in the given schema.
-func Tables(ctx context.Context, db *sql.DB, schema string) ([]string, error) {
+// Tables returns the list of table names in the given database.
+func Tables(ctx context.Context, db *sql.DB, databaseName string) ([]string, error) {
 	if db == nil {
 		return nil, database.ErrNoConnection
 	}
 
 	rows, err := db.QueryContext(ctx, `
-		SELECT table_name 
+		SELECT table_name
 		FROM information_schema.tables
-		WHERE table_schema = $1
+		WHERE table_schema = ?
 			AND table_type = 'BASE TABLE'
 		ORDER BY table_name ASC;
-	`, schema)
+	`, databaseName)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +71,6 @@ func Tables(ctx context.Context, db *sql.DB, schema string) ([]string, error) {
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-
 	return tables, nil
 }
 
@@ -119,7 +117,7 @@ func Rows(ctx context.Context, db *sql.DB, target database.DatabaseTarget, page 
 
 // Query executes a single SQL statement and returns a normalized result.
 // For SELECT it returns columns and rows (capped at 1000); each row is a map from column name to string.
-// For INSERT/UPDATE/DELETE it sets RowsAffected from PostgreSQL's rowsAffected().
+// For INSERT/UPDATE/DELETE it sets RowsAffected from MySQL's rowsAffected().
 // Returns query result or an error if the query is invalid or the connection is lost.
 func Query(ctx context.Context, db *sql.DB, query string) (database.QueryResult, error) {
 	const maxRows = 1000
@@ -213,179 +211,6 @@ func Query(ctx context.Context, db *sql.DB, query string) (database.QueryResult,
 	}, nil
 }
 
-// Constraints returns the list of constraints for the given table.
-func Constraints(ctx context.Context, db *sql.DB, target database.DatabaseTarget) ([]database.Constraint, error) {
-	if db == nil {
-		return nil, database.ErrNoConnection
-	}
-
-	rows, err := db.QueryContext(ctx, `
-		SELECT
-			con.conname AS constraint_name,
-			CASE con.contype WHEN 'p' THEN 'PRIMARY KEY' WHEN 'u' THEN 'UNIQUE' END AS constraint_type,
-			a.attname AS column_name,
-			NULL::text AS detail,
-			CASE con.contype WHEN 'p' THEN 0 WHEN 'u' THEN 2 END AS sort_order
-		FROM pg_catalog.pg_constraint con
-		JOIN pg_catalog.pg_class c ON c.oid = con.conrelid
-		JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
-		JOIN pg_catalog.pg_attribute a
-			ON a.attrelid = con.conrelid AND a.attnum = ANY(con.conkey)
-		WHERE c.relname = $1 AND n.nspname = $2
-			AND con.contype IN ('p', 'u')
-
-		UNION ALL
-
-		SELECT
-			'NOT NULL ' || a.attname,
-			'NOT NULL',
-			a.attname,
-			NULL::text,
-			1
-		FROM pg_catalog.pg_attribute a
-		JOIN pg_catalog.pg_class c ON c.oid = a.attrelid
-		JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
-		WHERE c.relname = $1 AND n.nspname = $2
-			AND a.attnotnull = true AND a.attnum > 0 AND NOT a.attisdropped
-
-		UNION ALL
-
-		SELECT
-			'DEFAULT ' || a.attname,
-			'DEFAULT',
-			a.attname,
-			pg_get_expr(ad.adbin, ad.adrelid),
-			1
-		FROM pg_catalog.pg_attribute a
-		JOIN pg_catalog.pg_class c ON c.oid = a.attrelid
-		JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
-		JOIN pg_catalog.pg_attrdef ad ON ad.adrelid = a.attrelid AND ad.adnum = a.attnum
-		WHERE c.relname = $1 AND n.nspname = $2
-			AND a.attnum > 0 AND NOT a.attisdropped
-		ORDER BY sort_order, constraint_name, column_name;
-	`, target.Table, target.Database)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	constraintsByName := make(map[string]*database.Constraint)
-	order := make([]string, 0)
-	for rows.Next() {
-		var (
-			constraintName string
-			constraintType string
-			columnName     string
-			detail         sql.NullString
-			sortOrder      int
-		)
-		if err := rows.Scan(&constraintName, &constraintType, &columnName, &detail, &sortOrder); err != nil {
-			return nil, err
-		}
-		constraintName = strings.TrimSpace(constraintName)
-		columnName = strings.TrimSpace(columnName)
-		if constraintName == "" || columnName == "" {
-			continue
-		}
-		c, ok := constraintsByName[constraintName]
-		if !ok {
-			c = &database.Constraint{
-				Name: constraintName,
-				Type: constraintType,
-			}
-			if detail.Valid && strings.TrimSpace(detail.String) != "" {
-				c.Detail = detail.String
-			}
-			constraintsByName[constraintName] = c
-			order = append(order, constraintName)
-		}
-		c.Columns = append(c.Columns, columnName)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	result := make([]database.Constraint, 0, len(order))
-	for _, name := range order {
-		if c, ok := constraintsByName[name]; ok {
-			result = append(result, *c)
-		}
-	}
-	return result, nil
-}
-
-// ForeignKeys returns the list of foreign keys for the given table.
-func ForeignKeys(ctx context.Context, db *sql.DB, target database.DatabaseTarget) ([]database.ForeignKey, error) {
-	if db == nil {
-		return nil, database.ErrNoConnection
-	}
-
-	rows, err := db.QueryContext(ctx, `
-		SELECT
-			c.conname AS constraint_name,
-			a.attname AS column_name,
-			ref.relname AS ref_table,
-			ra.attname AS ref_column,
-			c.confupdtype,
-			c.confdeltype
-		FROM pg_catalog.pg_constraint c
-		JOIN pg_catalog.pg_class cl ON cl.oid = c.conrelid
-		JOIN pg_catalog.pg_class ref ON ref.oid = c.confrelid
-		JOIN pg_catalog.pg_namespace n ON n.oid = cl.relnamespace
-		JOIN pg_catalog.pg_attribute a
-			ON a.attrelid = c.conrelid AND a.attnum = ANY(c.conkey)
-		JOIN pg_catalog.pg_attribute ra
-			ON ra.attrelid = c.confrelid AND ra.attnum = ANY(c.confkey)
-		WHERE cl.relname = $1
-			AND n.nspname = $2
-			AND c.contype = 'f'
-		ORDER BY c.conname;
-	`, target.Table, target.Database)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	result := make([]database.ForeignKey, 0)
-	for rows.Next() {
-		var (
-			name           string
-			column         string
-			refTable       string
-			refColumn      string
-			onUpdateAction string
-			onDeleteAction string
-		)
-		if err := rows.Scan(&name, &column, &refTable, &refColumn, &onUpdateAction, &onDeleteAction); err != nil {
-			return nil, err
-		}
-
-		name = strings.TrimSpace(name)
-		column = strings.TrimSpace(column)
-		refTable = strings.TrimSpace(refTable)
-		refColumn = strings.TrimSpace(refColumn)
-		onUpdateAction = foreignKeyAction(strings.TrimSpace(onUpdateAction))
-		onDeleteAction = foreignKeyAction(strings.TrimSpace(onDeleteAction))
-
-		if column == "" || refTable == "" || refColumn == "" {
-			continue
-		}
-
-		result = append(result, database.ForeignKey{
-			Name:           name,
-			Column:         column,
-			RefTable:       refTable,
-			RefColumn:      refColumn,
-			OnUpdateAction: strings.TrimSpace(onUpdateAction),
-			OnDeleteAction: strings.TrimSpace(onDeleteAction),
-		})
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-
 // Indexes returns the list of indexes for the given table.
 func Indexes(ctx context.Context, db *sql.DB, target database.DatabaseTarget) ([]database.Index, error) {
 	if db == nil {
@@ -394,22 +219,14 @@ func Indexes(ctx context.Context, db *sql.DB, target database.DatabaseTarget) ([
 
 	rows, err := db.QueryContext(ctx, `
 		SELECT
-			ic.relname AS index_name,
-			ix.indisunique AS is_unique,
-			a.attname AS column_name,
-			a.attnum
-		FROM pg_catalog.pg_index ix
-		JOIN pg_catalog.pg_class c  ON c.oid = ix.indrelid
-		JOIN pg_catalog.pg_class ic ON ic.oid = ix.indexrelid
-		JOIN pg_catalog.pg_attribute a
-			ON a.attrelid = c.oid
-			AND a.attnum = ANY(ix.indkey)
-			AND a.attnum > 0
-		JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
-		WHERE c.relname = $1
-			AND n.nspname = $2
-		ORDER BY ic.relname, a.attnum ASC;
-	`, target.Table, target.Database)
+			index_name,
+			column_name,
+			non_unique
+  		FROM information_schema.statistics                                  
+  		WHERE table_schema = ?                                                                                                                                                                                         
+    		AND table_name = ?  
+  		ORDER BY index_name;   
+	`, target.Database, target.Table)
 	if err != nil {
 		return nil, err
 	}
@@ -420,11 +237,10 @@ func Indexes(ctx context.Context, db *sql.DB, target database.DatabaseTarget) ([
 	for rows.Next() {
 		var (
 			indexName  string
-			isUnique   bool
 			columnName string
-			attnum     int64
+			isUnique   bool
 		)
-		if err := rows.Scan(&indexName, &isUnique, &columnName, &attnum); err != nil {
+		if err := rows.Scan(&indexName, &columnName, &isUnique); err != nil {
 			return nil, err
 		}
 		indexName = strings.TrimSpace(indexName)
@@ -432,7 +248,6 @@ func Indexes(ctx context.Context, db *sql.DB, target database.DatabaseTarget) ([
 		if indexName == "" || columnName == "" {
 			continue
 		}
-
 		index, ok := indexByName[indexName]
 		if !ok {
 			index = &database.Index{
@@ -455,7 +270,134 @@ func Indexes(ctx context.Context, db *sql.DB, target database.DatabaseTarget) ([
 	return result, nil
 }
 
-// columnInfoRows returns the list of columns for the given table.
+// Constraints returns the list of constraints for the given table.
+func Constraints(ctx context.Context, db *sql.DB, target database.DatabaseTarget) ([]database.Constraint, error) {
+	if db == nil {
+		return nil, database.ErrNoConnection
+	}
+
+	rows, err := db.QueryContext(ctx, `
+		SELECT
+			tc.constraint_name,
+			tc.constraint_type,
+			kcu.column_name                                                                                                                                                 
+		FROM information_schema.table_constraints tc                  
+		JOIN information_schema.key_column_usage kcu                                                                                                                                                                   
+			ON kcu.constraint_name = tc.constraint_name           
+			AND kcu.table_schema = tc.table_schema                                                                                                                                                                     
+			AND kcu.table_name = tc.table_name                    
+		WHERE tc.table_schema = ?                                                                                                                                                                                      
+			AND tc.table_name = ?  
+			AND tc.constraint_type IN ('PRIMARY KEY', 'UNIQUE')                                                                                                                                                          
+		ORDER BY tc.constraint_type, tc.constraint_name, kcu.ordinal_position;
+	`, target.Database, target.Table)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	constraintsByName := make(map[string]*database.Constraint)
+	order := make([]string, 0)
+	for rows.Next() {
+		var (
+			constraintName string
+			constraintType string
+			columnName     string
+		)
+		if err := rows.Scan(&constraintName, &constraintType, &columnName); err != nil {
+			return nil, err
+		}
+		constraintName = strings.TrimSpace(constraintName)
+		columnName = strings.TrimSpace(columnName)
+		if constraintName == "" || columnName == "" {
+			continue
+		}
+		constraint, ok := constraintsByName[constraintName]
+		if !ok {
+			constraint = &database.Constraint{
+				Name: constraintName,
+				Type: constraintType,
+			}
+			constraintsByName[constraintName] = constraint
+			order = append(order, constraintName)
+		}
+		constraint.Columns = append(constraint.Columns, columnName)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	result := make([]database.Constraint, 0, len(order))
+	for _, name := range order {
+		result = append(result, *constraintsByName[name])
+	}
+	return result, nil
+}
+
+// ForeignKeys returns the list of foreign keys for the given table.
+func ForeignKeys(ctx context.Context, db *sql.DB, target database.DatabaseTarget) ([]database.ForeignKey, error) {
+	if db == nil {
+		return nil, database.ErrNoConnection
+	}
+
+	rows, err := db.QueryContext(ctx, `
+		SELECT 
+			rc.constraint_name,
+			kcu.column_name,
+			kcu.referenced_table_name,
+			kcu.referenced_column_name,
+			rc.update_rule,
+			rc.delete_rule                                                                              
+		FROM information_schema.referential_constraints rc                                                                               
+		JOIN information_schema.key_column_usage kcu                                                                                                                                                                   
+			ON kcu.constraint_name = rc.constraint_name           
+			AND kcu.constraint_schema = rc.constraint_schema                                                                                                                                                           
+		WHERE rc.constraint_schema = ?                            
+			AND kcu.table_name = ?                                                                                                                                                                                       
+		ORDER BY rc.constraint_name, kcu.ordinal_position;
+	`, target.Database, target.Table)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make([]database.ForeignKey, 0)
+	for rows.Next() {
+		var (
+			constraintName       string
+			columnName           string
+			referencedTableName  string
+			referencedColumnName string
+			updateRule           string
+			deleteRule           string
+		)
+		if err := rows.Scan(&constraintName, &columnName, &referencedTableName, &referencedColumnName, &updateRule, &deleteRule); err != nil {
+			return nil, err
+		}
+		constraintName = strings.TrimSpace(constraintName)
+		columnName = strings.TrimSpace(columnName)
+		referencedTableName = strings.TrimSpace(referencedTableName)
+		referencedColumnName = strings.TrimSpace(referencedColumnName)
+		updateRule = strings.TrimSpace(updateRule)
+		deleteRule = strings.TrimSpace(deleteRule)
+		if constraintName == "" || columnName == "" || referencedTableName == "" || referencedColumnName == "" {
+			continue
+		}
+		result = append(result, database.ForeignKey{
+			Name:           constraintName,
+			Column:         columnName,
+			RefTable:       referencedTableName,
+			RefColumn:      referencedColumnName,
+			OnUpdateAction: updateRule,
+			OnDeleteAction: deleteRule,
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func columnInfoRows(ctx context.Context, db *sql.DB, schema, table string) ([]database.ColumnInfo, error) {
 	rows, err := db.QueryContext(ctx, `
 		SELECT
@@ -472,8 +414,8 @@ func columnInfoRows(ctx context.Context, db *sql.DB, schema, table string) ([]da
 			AND kcu.table_schema = c.table_schema
 			AND kcu.table_name = c.table_name
 			AND kcu.column_name = c.column_name
-		WHERE c.table_schema = $1
-			AND c.table_name = $2
+		WHERE c.table_schema = ?
+			AND c.table_name = ?
 		ORDER BY c.ordinal_position ASC;
 	`, schema, table)
 	if err != nil {
@@ -494,7 +436,6 @@ func columnInfoRows(ctx context.Context, db *sql.DB, schema, table string) ([]da
 		if strings.TrimSpace(name) == "" {
 			continue
 		}
-
 		order := 0
 		if pkOrder.Valid {
 			order = int(pkOrder.Int64)
@@ -517,7 +458,7 @@ func buildPageColumns(columnsInfo []database.ColumnInfo) ([]string, []string) {
 	selectColumns := make([]string, 0, len(columnsInfo))
 	for _, column := range columnsInfo {
 		columnNames = append(columnNames, column.Name)
-		selectColumns = append(selectColumns, database.QuoteIdentifier(column.Name))
+		selectColumns = append(selectColumns, database.QuoteIdentifierMySQL(column.Name))
 	}
 	return columnNames, selectColumns
 }
@@ -537,7 +478,7 @@ func buildRowsPagePlan(schema, table string, columnsInfo []database.ColumnInfo, 
 		if err != nil {
 			return database.RowsPagePlan{}, err
 		}
-		primaryKey := database.QuoteIdentifier(primaryKeyColumns[0])
+		primaryKey := database.QuoteIdentifierMySQL(primaryKeyColumns[0])
 		where := ""
 		if after > 0 {
 			where = fmt.Sprintf("WHERE %s > %d", primaryKey, after)
@@ -547,10 +488,10 @@ func buildRowsPagePlan(schema, table string, columnsInfo []database.ColumnInfo, 
 			Query: fmt.Sprintf(
 				"SELECT %s AS %s, %s FROM %s.%s %s ORDER BY %s LIMIT %d;",
 				primaryKey,
-				database.QuoteIdentifier(cursorAlias),
+				database.QuoteIdentifierMySQL(cursorAlias),
 				strings.Join(selectColumns, ", "),
-				database.QuoteIdentifier(schema),
-				database.QuoteIdentifier(table),
+				database.QuoteIdentifierMySQL(schema),
+				database.QuoteIdentifierMySQL(table),
 				where,
 				primaryKey,
 				limit,
@@ -571,8 +512,8 @@ func buildRowsPagePlan(schema, table string, columnsInfo []database.ColumnInfo, 
 			Query: fmt.Sprintf(
 				"SELECT %s FROM %s.%s ORDER BY %s LIMIT %d OFFSET %d;",
 				strings.Join(selectColumns, ", "),
-				database.QuoteIdentifier(schema),
-				database.QuoteIdentifier(table),
+				database.QuoteIdentifierMySQL(schema),
+				database.QuoteIdentifierMySQL(table),
 				database.PrimaryKeyOrderExpr(primaryKeyColumns),
 				limit,
 				offset,
@@ -580,23 +521,5 @@ func buildRowsPagePlan(schema, table string, columnsInfo []database.ColumnInfo, 
 			ScanOffset: 0, // no separate cursor column; offset is the cursor
 			AfterValue: offset,
 		}, nil
-	}
-}
-
-// foreignKeyAction converts the PostgreSQL foreign key action to a readable string.
-func foreignKeyAction(action string) string {
-	switch action {
-	case "a":
-		return "NO ACTION"
-	case "r":
-		return "RESTRICT"
-	case "c":
-		return "CASCADE"
-	case "n":
-		return "SET NULL"
-	case "d":
-		return "SET DEFAULT"
-	default:
-		return action
 	}
 }

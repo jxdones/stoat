@@ -41,3 +41,67 @@ func TestColumnMinWidth(t *testing.T) {
 		})
 	}
 }
+
+func TestFirstSQLKeyword(t *testing.T) {
+	tests := []struct {
+		name  string
+		query string
+		want  string
+	}{
+		{
+			name:  "simple_select",
+			query: "select * from users",
+			want:  "SELECT",
+		},
+		{
+			name: "leading_whitespace_and_line_comments",
+			query: `
+
+-- explain query
+   -- another comment
+   insert into users(id) values (1)
+`,
+			want: "INSERT",
+		},
+		{
+			name:  "single_line_block_comment_before_query",
+			query: "/* comment */ delete from sessions where id = 1",
+			want:  "DELETE",
+		},
+		{
+			name: "multiline_block_comment_before_query",
+			query: `
+/* comment start
+still in comment
+comment end */
+update users set active = true
+`,
+			want: "UPDATE",
+		},
+		{
+			name: "multiline_block_comment_closes_mid_line",
+			query: `
+/* metadata
+version: 1 */ select 1
+`,
+			want: "SELECT",
+		},
+		{
+			name: "empty_or_comment_only_returns_empty",
+			query: `
+-- only comments
+/* and block comments */
+`,
+			want: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := FirstSQLKeyword(tt.query)
+			if got != tt.want {
+				t.Errorf("FirstSQLKeyword() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}

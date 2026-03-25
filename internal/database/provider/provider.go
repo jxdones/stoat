@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/jxdones/stoat/internal/database"
+	"github.com/jxdones/stoat/internal/database/mysql"
 	"github.com/jxdones/stoat/internal/database/postgres"
 	"github.com/jxdones/stoat/internal/database/sqlite"
 )
@@ -15,6 +16,8 @@ func FromConfig(config database.Config) (database.Connection, error) {
 		return sqlite.NewConnection(config)
 	case database.DBMSPostgres:
 		return postgres.NewConnection(config)
+	case database.DBMSMySQL:
+		return mysql.NewConnection(config)
 	default:
 		if strings.TrimSpace(string(config.DBMS)) == "" {
 			return nil, database.ErrInvalidConfig

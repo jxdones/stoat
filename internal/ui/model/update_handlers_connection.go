@@ -79,10 +79,27 @@ func (m Model) handleKeyPressInConnectionPicker(msg tea.KeyPressMsg) (tea.Model,
 			if port == 0 {
 				port = config.DefaultPostgresPort
 			}
-			dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s",
-				selected.User, selected.Password, selected.Host, port, selected.Database)
+			sslmode := selected.SSLMode
+			if sslmode == "" {
+				sslmode = "disable"
+			}
+			dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
+				selected.User, selected.Password, selected.Host, port, selected.Database, sslmode)
 			cfg.DBMS = database.DBMSPostgres
 			cfg.Values = map[string]string{"dsn": dsn}
+		case database.DBMSMySQL:
+			port := selected.Port
+			if port == 0 {
+				port = config.DefaultMySQLPort
+			}
+			tlsMode := selected.TLSMode
+			if tlsMode == "" {
+				tlsMode = "false"
+			}
+			dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?tls=%s",
+				selected.User, selected.Password, selected.Host, port, selected.Database, tlsMode)
+			cfg.DBMS = database.DBMSMySQL
+			cfg.Values = map[string]string{"dsn": dsn, "database": selected.Database}
 		default:
 			cfg.DBMS = database.DBMSSQLite
 			cfg.Values = map[string]string{"path": selected.Path}

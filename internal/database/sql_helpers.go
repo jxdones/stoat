@@ -1,9 +1,11 @@
 package database
 
 import (
+	"encoding/hex"
 	"fmt"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 // Constants for column display.
@@ -42,7 +44,12 @@ func AsString(v any) string {
 	case string:
 		return t
 	case []byte:
-		return string(t)
+		// MySQL drivers scan all column types (char, varchar, text, binary, etc.) as []byte.
+		// Valid UTF-8 bytes are returned as a string; non-UTF-8 bytes (e.g. BINARY(16) UUIDs) are hex-encoded.
+		if utf8.Valid(t) {
+			return string(t)
+		}
+		return hex.EncodeToString(t)
 	case float64:
 		if float64(int64(t)) == t {
 			return strconv.FormatInt(int64(t), 10)
@@ -90,6 +97,11 @@ func HasIntegerAffinity(declaredType string) bool {
 // QuoteIdentifier quotes an identifier for use in an SQL query.
 func QuoteIdentifier(name string) string {
 	return `"` + strings.ReplaceAll(name, `"`, `""`) + `"`
+}
+
+// QuoteIdentifierMySQL quotes an identifier with backticks for MySQL/MariaDB.
+func QuoteIdentifierMySQL(name string) string {
+	return "`" + strings.ReplaceAll(name, "`", "``") + "`"
 }
 
 // QuoteSQLString quotes a string for use in an SQL query.
@@ -155,4 +167,38 @@ func PrimaryKeyOrderExpr(primaryKeyColumns []string) string {
 // header name length, clamped between MinColumnWidth and MaxColumnWidth.
 func ColumnMinWidth(headerLen int) int {
 	return max(MinColumnWidth, min(MaxColumnWidth, headerLen+ColumnNamePad))
+}
+
+// FirstSQLKeyword returns the first non-comment keyword in a SQL query,
+// skipping lines starting with -- and blocks wrapped in /* */.
+// Returns an empty string if no keyword is found.
+func FirstSQLKeyword(query string) string {
+	inBlock := false
+	for _, line := range strings.Split(query, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if inBlock {
+			if idx := strings.Index(trimmed, "*/"); idx >= 0 {
+				inBlock = false
+				trimmed = strings.TrimSpace(trimmed[idx+2:])
+			} else {
+				continue
+			}
+		}
+		if strings.HasPrefix(trimmed, "/*") {
+			if idx := strings.Index(trimmed, "*/"); idx >= 0 {
+				trimmed = strings.TrimSpace(trimmed[idx+2:])
+			} else {
+				inBlock = true
+				continue
+			}
+		}
+		if strings.HasPrefix(trimmed, "--") || trimmed == "" {
+			continue
+		}
+		fields := strings.Fields(strings.ToUpper(trimmed))
+		if len(fields) > 0 {
+			return fields[0]
+		}
+	}
+	return ""
 }

@@ -14,7 +14,11 @@ type SavedQuery struct {
 	Query string `yaml:"query"`
 }
 
-const DefaultPostgresPort = 5432
+// Default ports for common databases.
+const (
+	DefaultPostgresPort = 5432
+	DefaultMySQLPort    = 3306
+)
 
 // Connection is a database connection configuration.
 type Connection struct {
@@ -28,6 +32,10 @@ type Connection struct {
 	User     string `yaml:"user,omitempty"`
 	Password string `yaml:"password,omitempty"`
 	Database string `yaml:"database,omitempty"`
+	SSLMode  string `yaml:"sslmode,omitempty"` // e.g. disable, require, verify-full
+
+	// MySQL fields
+	TLSMode string `yaml:"tls_mode,omitempty"` // e.g. false, skip-verify, true
 
 	// SQLite fields
 	Path         string       `yaml:"path,omitempty"`

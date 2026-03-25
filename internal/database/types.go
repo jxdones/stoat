@@ -6,6 +6,7 @@ type DBMS string
 const (
 	DBMSSQLite   DBMS = "sqlite"
 	DBMSPostgres DBMS = "postgres"
+	DBMSMySQL    DBMS = "mysql"
 )
 
 // Config is the configuration for a database connection.

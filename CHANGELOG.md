@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-03-23
+
+### Added
+
+- **MySQL and MariaDB support.** Connect to MySQL 8+ and MariaDB using `type: mysql` in your config. Includes full schema inspection: columns, indexes, constraints, and foreign keys.
+
 ## [0.13.1] - 2026-03-23
 
 ### Added
@@ -119,7 +125,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Read-only mode.** Pass `--read-only` at startup to open any connection in read-only mode, or set `read_only: true` per connection in `~/.stoat/config.yaml`.
-Enforced at the DB level (SQLite opens with `mode=ro`; Postgres sets `SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY`). 
+Enforced at the DB level (SQLite opens with `mode=ro`; Postgres sets `SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY`).
 Write queries typed in the query box or editor are blocked before reaching the DB with a clear status bar warning. Inline cell editing is also blocked. A `[RO]` badge appears on the right of the status bar when active.
 - **Connection name in status bar.** The active connection name is now shown on the right side of the status bar, so it's always clear which environment you're currently connected.
 

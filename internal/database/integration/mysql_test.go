@@ -8,15 +8,15 @@ import (
 	"github.com/jxdones/stoat/internal/database"
 )
 
-func TestPostgresDatabases(t *testing.T) {
-	testDatabases(t, pgConn, "public")
+func TestMySQLDatabases(t *testing.T) {
+	testDatabases(t, mysqlConn, "stoat_test")
 }
 
-func TestPostgresTables(t *testing.T) {
-	testTables(t, pgConn, "public", []string{"users", "habits", "habit_logs"})
+func TestMySQLTables(t *testing.T) {
+	testTables(t, mysqlConn, "stoat_test", []string{"users", "habits", "habit_logs"})
 }
 
-func TestPostgresRows(t *testing.T) {
+func TestMySQLRows(t *testing.T) {
 	tests := []struct {
 		table         string
 		expectedCount int
@@ -28,12 +28,12 @@ func TestPostgresRows(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.table, func(t *testing.T) {
-			testRows(t, pgConn, database.DatabaseTarget{Database: "public", Table: tt.table}, tt.expectedCount)
+			testRows(t, mysqlConn, database.DatabaseTarget{Database: "stoat_test", Table: tt.table}, tt.expectedCount)
 		})
 	}
 }
 
-func TestPostgresForeignKeys(t *testing.T) {
+func TestMySQLForeignKeys(t *testing.T) {
 	tests := []struct {
 		table         string
 		expectedCount int
@@ -45,29 +45,29 @@ func TestPostgresForeignKeys(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.table, func(t *testing.T) {
-			testForeignKeys(t, pgConn, database.DatabaseTarget{Database: "public", Table: tt.table}, tt.expectedCount)
+			testForeignKeys(t, mysqlConn, database.DatabaseTarget{Database: "stoat_test", Table: tt.table}, tt.expectedCount)
 		})
 	}
 }
 
-func TestPostgresIndexes(t *testing.T) {
+func TestMySQLIndexes(t *testing.T) {
 	tests := []struct {
 		table         string
 		expectedCount int
 	}{
 		{"users", 3},
-		{"habits", 1},
-		{"habit_logs", 1},
+		{"habits", 2},
+		{"habit_logs", 2},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.table, func(t *testing.T) {
-			testIndexes(t, pgConn, database.DatabaseTarget{Database: "public", Table: tt.table}, tt.expectedCount)
+			testIndexes(t, mysqlConn, database.DatabaseTarget{Database: "stoat_test", Table: tt.table}, tt.expectedCount)
 		})
 	}
 }
 
-func TestPostgresQuery(t *testing.T) {
+func TestMySQLQuery(t *testing.T) {
 	tests := []struct {
 		name           string
 		query          string
@@ -80,34 +80,28 @@ func TestPostgresQuery(t *testing.T) {
 			wantMinRows:    1,
 			wantMinColumns: 1,
 		},
-		{
-			name:           "explain_analyze_returns_rows",
-			query:          "EXPLAIN ANALYZE SELECT * FROM users",
-			wantMinRows:    1,
-			wantMinColumns: 1,
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			testQuery(t, pgConn, tt.query, tt.wantMinRows, tt.wantMinColumns)
+			testQuery(t, mysqlConn, tt.query, tt.wantMinRows, tt.wantMinColumns)
 		})
 	}
 }
 
-func TestPostgresConstraints(t *testing.T) {
+func TestMySQLConstraints(t *testing.T) {
 	tests := []struct {
 		table         string
 		expectedCount int
 	}{
-		{"users", 7},
-		{"habits", 5},
-		{"habit_logs", 6},
+		{"users", 3},
+		{"habits", 1},
+		{"habit_logs", 1},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.table, func(t *testing.T) {
-			testConstraints(t, pgConn, database.DatabaseTarget{Database: "public", Table: tt.table}, tt.expectedCount)
+			testConstraints(t, mysqlConn, database.DatabaseTarget{Database: "stoat_test", Table: tt.table}, tt.expectedCount)
 		})
 	}
 }
