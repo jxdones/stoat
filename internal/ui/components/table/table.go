@@ -100,6 +100,9 @@ func (m *Model) SetSize(width, height int) {
 // SetColumns replaces the columns and keeps selection/viewport valid.
 func (m *Model) SetColumns(columns []Column) {
 	m.columns = normalizeColumns(columns)
+	// Reset horizontal viewport so query results and new tables always start at column 0.
+	m.colOffset = 0
+	m.colIndex = 0
 	m.clampSelection()
 	m.ensureVisibleColumn()
 	m.ensureVisibleRow()
@@ -187,6 +190,12 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	}
 
 	if isDigitKey(keyMsg) {
+		firstColumnKey := key.Matches(keyMsg, keys.Default.GotoFirstColumn) && len(m.countBuffer) == 0
+		if firstColumnKey {
+			m.GotoFirstColumn()
+			return m, nil
+		}
+
 		if len(m.countBuffer) < maxCountDigits {
 			m.countBuffer += keyMsg.String()
 		}
@@ -216,6 +225,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case key.Matches(keyMsg, keys.Default.GotoBottom):
 		m.countBuffer = ""
 		m.rowIndex = len(m.rows) - 1
+	case key.Matches(keyMsg, keys.Default.GotoLastColumn):
+		m.GotoLastColumn()
 	default:
 		m.countBuffer = ""
 		return m, nil
@@ -234,6 +245,19 @@ func (m *Model) GotoTop() {
 	m.ensureVisibleRow()
 }
 
+// GotoFirstColumn moves the cursor to the first column of the table.
+func (m *Model) GotoFirstColumn() {
+	m.colIndex = 0
+	m.colOffset = 0
+	m.ensureVisibleColumn()
+}
+
+// GotoLastColumn moves the cursor to the last column of the table.
+func (m *Model) GotoLastColumn() {
+	m.colIndex = len(m.columns) - 1
+	m.ensureVisibleColumn()
+}
+
 // HelpBindings returns the key bindings for the table.
 func HelpBindings() []key.Binding {
 	return []key.Binding{
@@ -244,6 +268,10 @@ func HelpBindings() []key.Binding {
 		key.NewBinding(
 			key.WithKeys("home", "g", "end", "G"),
 			key.WithHelp("g/G", "top/bottom"),
+		),
+		key.NewBinding(
+			key.WithKeys("0", "$"),
+			key.WithHelp("0/$", "first/last column"),
 		),
 		key.NewBinding(
 			key.WithKeys("ctrl+n", "ctrl+b"),

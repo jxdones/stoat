@@ -75,7 +75,7 @@ curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh
 To install a specific version:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh -s -- v0.14.0
+curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh -s -- v0.14.1
 ```
 
 **Homebrew** (macOS):
@@ -170,6 +170,7 @@ The options bar at the bottom shows shortcuts for the currently focused pane. Wh
 | `g` / `G` | Jump to top / bottom |
 | `Ctrl+1` – `Ctrl+5` | Switch tabs (Records, Columns, Constraints, Foreign Keys, Indexes) |
 | `Ctrl+N` / `Ctrl+B` | Next / previous page |
+| `0` / `$` | Go to first / last column |
 | `N` + motion (e.g. `4h`, `10j`) | Repeat motion N times (vim count prefix) |
 | `Enter` | Enter inline edit mode for the selected cell |
 | `y` | Copy value from active cell to clipboard |

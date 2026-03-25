@@ -7,7 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.14.0] - 2026-03-23
+## [0.14.1] - 2026-03-24
+
+### Added
+
+- **`$` / `0` column navigation.** Press `$` to jump to the last column and `0` to jump to the first column, vim-style.
+
+### Fixed
+
+- **Query result column offset.** Running a query while scrolled horizontally no longer renders results starting from the wrong column, the table resets to column 0.
+
+## [0.14.0] - 2026-03-24
 
 ### Added
 
