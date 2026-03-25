@@ -14,8 +14,10 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-var pgConn database.Connection
-var mysqlConn database.Connection
+var (
+	pgConn    database.Connection
+	mysqlConn database.Connection
+)
 
 func TestMain(m *testing.M) {
 	ctx := context.Background()

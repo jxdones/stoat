@@ -981,6 +981,18 @@ func Test_Update_key_movement(t *testing.T) {
 			wantLine: 2,
 			wantCol:  1,
 		},
+		{
+			name:     "goto_first_column_0",
+			keys:     []string{"0"},
+			wantLine: 1,
+			wantCol:  1,
+		},
+		{
+			name:     "goto_last_column_$",
+			keys:     []string{"$"},
+			wantLine: 1,
+			wantCol:  2,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

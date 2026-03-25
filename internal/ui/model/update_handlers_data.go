@@ -155,6 +155,7 @@ func (m Model) handleQueryExecuted(msg QueryExecutedMsg) (tea.Model, tea.Cmd) {
 		m.table.SetColumns(dbColumnsToTable(msg.Result.Columns))
 		m.unfilteredRows = dbRowsToTable(msg.Result.Rows)
 		m.table.SetRows(m.unfilteredRows)
+		m.table.GotoTop()
 		m.applyViewState()
 		cmd := m.statusbar.SetStatusWithTTL(
 			fmt.Sprintf(" Query ok: %d row(s) returned", len(msg.Result.Rows)),
