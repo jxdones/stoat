@@ -4,6 +4,12 @@ import (
 	"testing"
 )
 
+func TestAsString_nil_returns_NullSentinel(t *testing.T) {
+	if got := AsString(nil); got != NullSentinel {
+		t.Errorf("AsString(nil) = %q, want NullSentinel %q", got, NullSentinel)
+	}
+}
+
 func TestColumnMinWidth(t *testing.T) {
 	tests := []struct {
 		name      string

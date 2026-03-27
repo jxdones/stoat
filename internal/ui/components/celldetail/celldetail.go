@@ -51,20 +51,27 @@ func (m *Model) SetSize(width, height int) {
 	m.viewport.SetHeight(max(1, height-modalVerticalChrome))
 }
 
+// nullSentinel is the internal sentinel for SQL NULL, kept in sync with table.NullValue.
+const nullSentinel = "\x00"
+
 // SetContent sets the content of the cell detail modal.
 func (m Model) SetContent(colKey, colType, content string) Model {
 	m.colKey = colKey
 	m.colType = colType
 	m.rawContent = content
-	if isJSONColumnType(colType) {
-		m.viewport.LeftGutterFunc = func(viewport.GutterContext) string { return "  " }
-	} else {
-		m.viewport.LeftGutterFunc = viewport.NoGutter
-	}
+	m.viewport.LeftGutterFunc = viewport.NoGutter
 
-	ct := displayContent(m.rawContent, m.colType)
-	if !isJSONColumnType(colType) {
-		ct = ansi.Wrap(ct, m.viewport.Width(), "")
+	var ct string
+	if content == nullSentinel {
+		ct = lipgloss.NewStyle().Foreground(theme.Current.TextMuted).Render("NULL")
+	} else {
+		if isJSONColumnType(colType) {
+			m.viewport.LeftGutterFunc = func(viewport.GutterContext) string { return "  " }
+		}
+		ct = displayContent(m.rawContent, m.colType)
+		if !isJSONColumnType(colType) {
+			ct = ansi.Wrap(ct, m.viewport.Width(), "")
+		}
 	}
 
 	m.wrappedContent = ct

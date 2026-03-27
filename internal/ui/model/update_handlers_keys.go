@@ -188,6 +188,9 @@ func (m Model) handleCopyCellValueFromTable(msg tea.KeyPressMsg) (tea.Model, tea
 		return m, nil, false
 	}
 
+	if cellValue == table.NullValue {
+		cellValue = ""
+	}
 	return m, CopyToClipboardCmd(cellValue), true
 }
 

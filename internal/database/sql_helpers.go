@@ -15,6 +15,10 @@ const (
 	ColumnNamePad  = 2
 )
 
+// NullSentinel is the internal string representation of a SQL NULL value.
+// It must stay in sync with table.NullValue in the table package.
+const NullSentinel = "\x00"
+
 // Constants for cursor parsing and conversion.
 const (
 	decimalBase  = 10
@@ -40,7 +44,7 @@ func MakeScanBuffers(n int) ([]any, []any) {
 func AsString(v any) string {
 	switch t := v.(type) {
 	case nil:
-		return ""
+		return NullSentinel
 	case string:
 		return t
 	case []byte:

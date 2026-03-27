@@ -272,12 +272,17 @@ func (m Model) renderDetail(width int) string {
 	head := lipgloss.NewStyle().Foreground(theme.Current.TextPrimary).Render(fmt.Sprintf("Ln %d, Col %d", line, col))
 	field := lipgloss.NewStyle().Foreground(theme.Current.TextAccent).Render(column.Title)
 
+	displayValue := value
+	if value == table.NullValue {
+		displayValue = "NULL"
+	}
+
 	var plain string
 	if m.tabs.ActiveTab() == "Records" {
 		typ := lipgloss.NewStyle().Foreground(theme.Current.TextWarning).Render(fieldType)
-		plain = fmt.Sprintf("%s | field: %s | type: %s | value: %s", ansi.Strip(head), ansi.Strip(field), ansi.Strip(typ), value)
+		plain = fmt.Sprintf("%s | field: %s | type: %s | value: %s", ansi.Strip(head), ansi.Strip(field), ansi.Strip(typ), displayValue)
 	} else {
-		plain = fmt.Sprintf("%s | field: %s | value: %s", ansi.Strip(head), ansi.Strip(field), value)
+		plain = fmt.Sprintf("%s | field: %s | value: %s", ansi.Strip(head), ansi.Strip(field), displayValue)
 	}
 	trimmed := ansi.Truncate(plain, max(0, width-2), "…")
 	return lipgloss.NewStyle().Width(common.ClampMin(width, 1)).Padding(0, 1).

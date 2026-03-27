@@ -446,6 +446,11 @@ func Test_normalizeCellText_replaces_newline_tab_carriage_return_with_space(t *t
 			input:  "a\nb\tc\rd",
 			expect: "a b c d",
 		},
+		{
+			name:   "null_sentinel_renders_as_NULL",
+			input:  NullValue,
+			expect: "NULL",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

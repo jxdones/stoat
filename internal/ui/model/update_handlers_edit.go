@@ -7,6 +7,7 @@ import (
 
 	"github.com/jxdones/stoat/internal/database"
 	"github.com/jxdones/stoat/internal/ui/components/statusbar"
+	"github.com/jxdones/stoat/internal/ui/components/table"
 )
 
 // handleUpdateFromCell handles the update from cell key press.
@@ -34,6 +35,9 @@ func (m Model) handleUpdateFromCell(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bo
 		return m, nil, false
 	}
 	m.inlineEditMode = true
+	if value == table.NullValue {
+		value = ""
+	}
 	m.editbox.SetValue(value)
 	m.applyViewState()
 	return m, nil, true

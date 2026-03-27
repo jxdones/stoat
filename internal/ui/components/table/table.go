@@ -14,6 +14,13 @@ import (
 	"github.com/jxdones/stoat/internal/ui/theme"
 )
 
+// NullValue is the sentinel string used to represent SQL NULL in table rows.
+// It must stay in sync with database.NullSentinel in the database package.
+const NullValue = "\x00"
+
+// nullDisplay is the text rendered in cells that hold a NULL value.
+const nullDisplay = "NULL"
+
 // Table layout and viewport constants.
 const (
 	tableDefaultWidth  = 80
@@ -357,14 +364,25 @@ func (m Model) renderRow(rowIndex int, window columnWindow) string {
 	parts = append(parts, padOrTrim(strconv.Itoa(rowNumber), m.rowNumberWidth(), rowStyle))
 	for pos, columnIndex := range window.indices {
 		column := m.columns[columnIndex]
-		cell := normalizeCellText(row[column.Key])
-		style := lipgloss.NewStyle().Foreground(theme.Current.TextPrimary)
+		rawVal := row[column.Key]
+		isNull := rawVal == NullValue
+		cell := normalizeCellText(rawVal)
+
+		var style lipgloss.Style
+		if isNull {
+			style = lipgloss.NewStyle().Foreground(theme.Current.TextMuted)
+		} else {
+			style = lipgloss.NewStyle().Foreground(theme.Current.TextPrimary)
+		}
 		if rowIndex == m.rowIndex {
 			style = style.Background(theme.Current.Border)
 		}
-
 		if rowIndex == m.rowIndex && columnIndex == m.colIndex {
-			style = lipgloss.NewStyle().Foreground(theme.Current.TabsActiveText).Background(theme.Current.TabsActiveBg).Bold(true)
+			if isNull {
+				style = lipgloss.NewStyle().Foreground(theme.Current.TextMuted).Background(theme.Current.TabsActiveBg).Bold(true)
+			} else {
+				style = lipgloss.NewStyle().Foreground(theme.Current.TabsActiveText).Background(theme.Current.TabsActiveBg).Bold(true)
+			}
 		}
 
 		parts = append(parts, padOrTrim(cell, window.widths[pos], style))
@@ -561,7 +579,11 @@ func padOrTrim(s string, width int, style lipgloss.Style) string {
 }
 
 // normalizeCellText replaces newline, tab, and carriage return with a space.
+// SQL NULL values (NullValue sentinel) are rendered as "NULL".
 func normalizeCellText(s string) string {
+	if s == NullValue {
+		return nullDisplay
+	}
 	return strings.NewReplacer("\r", " ", "\n", " ", "\t", " ").Replace(s)
 }
 

@@ -4,12 +4,17 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/jxdones/stoat/internal/ui/components/table"
 )
 
 // formatSQLValue returns the value formatted as a SQL literal for the given column type.
 // Integer/real types are left unquoted; text and unknown types are single-quoted with
 // single quotes escaped by doubling. Empty value is rendered as NULL.
 func formatSQLValue(colType, value string) string {
+	if value == table.NullValue {
+		return "NULL"
+	}
 	value = strings.TrimSpace(value)
 	if value == "" {
 		return "NULL"
