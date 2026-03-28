@@ -8,16 +8,40 @@ import (
 	"github.com/jxdones/stoat/internal/ui/components/statusbar"
 )
 
-// handleWindowSize handles the WindowSizeMsg and updates the view state.
-func (m Model) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
-	m.view.width = msg.Width
-	m.view.height = msg.Height
-	m.applyViewState()
-	return m, nil
+// focusNext advances focus in the cycle: Sidebar → Filterbox → Table → Querybox → Sidebar.
+func (m *Model) focusNext() {
+	switch m.view.focus {
+	case FocusSidebar:
+		m.view.focus = FocusFilterbox
+	case FocusFilterbox:
+		m.view.focus = FocusTable
+	case FocusTable:
+		m.view.focus = FocusQuerybox
+	case FocusQuerybox:
+		m.view.focus = FocusSidebar
+	default:
+		m.view.focus = FocusSidebar
+	}
 }
 
-// handleUpdateFocused forwards the message to the focused panel and returns the updated model and any command.
-func (m Model) handleUpdateFocused(msg tea.Msg) (tea.Model, tea.Cmd) {
+// focusPrevious retreats focus in the cycle: Sidebar → Querybox → Table → Filterbox → Sidebar.
+func (m *Model) focusPrevious() {
+	switch m.view.focus {
+	case FocusSidebar:
+		m.view.focus = FocusQuerybox
+	case FocusQuerybox:
+		m.view.focus = FocusTable
+	case FocusTable:
+		m.view.focus = FocusFilterbox
+	case FocusFilterbox:
+		m.view.focus = FocusSidebar
+	default:
+		m.view.focus = FocusSidebar
+	}
+}
+
+// delegateToFocused forwards a message to the focused panel.
+func (m Model) delegateToFocused(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch m.view.focus {
 	case FocusSidebar:
 		next, ev := m.sidebar.Update(msg)
@@ -95,8 +119,8 @@ func (m Model) handleUpdateFocused(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// handlePasteMsg handles the PasteMsg and updates the focused component.
-func (m Model) handlePasteMsg(msg tea.PasteMsg) (tea.Model, tea.Cmd) {
+// delegatePaste forwards a paste event to the focused panel.
+func (m Model) delegatePaste(msg tea.PasteMsg) (tea.Model, tea.Cmd) {
 	if m.inlineEditMode {
 		next, cmd := m.editbox.Update(msg)
 		m.editbox = next

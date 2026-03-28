@@ -4,59 +4,11 @@ import (
 	"strings"
 	"testing"
 
-	tea "charm.land/bubbletea/v2"
-
 	"github.com/jxdones/stoat/internal/database"
 )
 
 // ellipsis is the same character used in queryPreviewForHeader for truncation.
 const ellipsis = "…"
-
-// modelWithTableFocusAndData returns a model with FocusTable, a sidebar pointing
-// at mydb.users, and a one-column/one-row table so ActiveCell() returns a value.
-func modelWithTableFocusAndData() Model {
-	m := New()
-	m.view.focus = FocusTable
-	m.sidebar.SetDatabases([]string{"mydb"})
-	m.sidebar.SetTables("mydb", []string{"users"})
-	m.sidebar.OpenSelectedDatabase()
-	m.table.SetColumns(dbColumnsToTable([]database.Column{
-		{Key: "name", Title: "name", Type: "text", MinWidth: 4},
-	}))
-	m.table.SetRows(dbRowsToTable([]database.Row{
-		{"name": "Alice"},
-	}))
-	return m
-}
-
-// modelWithFilterboxFocusAndData returns a model ready for handleApplyFilter tests:
-// filterbox focused, sidebar pointing at mydb.users, table loaded with three rows.
-func modelWithFilterboxFocusAndData() Model {
-	m := New()
-	m.view.focus = FocusFilterbox
-	m.filterbox.Focus()
-	m.source = mockDataSource{}
-	m.sidebar.SetDatabases([]string{"mydb"})
-	m.sidebar.SetTables("mydb", []string{"users"})
-	m.sidebar.OpenSelectedDatabase()
-	cols := dbColumnsToTable([]database.Column{
-		{Key: "id", Title: "id", Type: "integer"},
-		{Key: "name", Title: "name", Type: "text"},
-	})
-	rows := dbRowsToTable([]database.Row{
-		{"id": "1", "name": "Alice"},
-		{"id": "2", "name": "Bob"},
-		{"id": "3", "name": "Charlie"},
-	})
-	m.table.SetColumns(cols)
-	m.unfilteredRows = rows
-	m.table.SetRows(rows)
-	return m
-}
-
-func statusText(m Model) string {
-	return m.statusbar.View(80).Content
-}
 
 func TestQueryPreviewForHeader(t *testing.T) {
 	const maxLen = 52
@@ -130,26 +82,26 @@ func TestQueryPreviewForHeader(t *testing.T) {
 func TestHelpExpanded(t *testing.T) {
 	tests := []struct {
 		name              string
-		msg               tea.KeyPressMsg
+		key               string
 		initiallyExpanded bool
 		wantExpanded      bool
 	}{
 		{
 			name:              "toggle_help_expanded_on",
 			initiallyExpanded: false,
-			msg:               keyMsg("?"),
+			key:               "?",
 			wantExpanded:      true,
 		},
 		{
 			name:              "toggle_help_expanded_off",
 			initiallyExpanded: true,
-			msg:               keyMsg("esc"),
+			key:               "esc",
 			wantExpanded:      false,
 		},
 		{
 			name:              "toggle_help_expanded_on_when_already_expanded",
 			initiallyExpanded: true,
-			msg:               keyMsg("?"),
+			key:               "?",
 			wantExpanded:      false,
 		},
 	}
@@ -158,7 +110,7 @@ func TestHelpExpanded(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			m := New()
 			m.helpExpanded = tt.initiallyExpanded
-			result, _ := m.handleKeyPress(tt.msg)
+			result, _ := m.handleKeyPress(keyMsg(tt.key))
 			got := result.(Model)
 			if got.helpExpanded != tt.wantExpanded {
 				t.Errorf("helpExpanded = %v, want %v", m.helpExpanded, tt.wantExpanded)
@@ -167,22 +119,7 @@ func TestHelpExpanded(t *testing.T) {
 	}
 }
 
-func modelWithJSONBColumn() Model {
-	m := New()
-	m.view.focus = FocusTable
-	m.sidebar.SetDatabases([]string{"mydb"})
-	m.sidebar.SetTables("mydb", []string{"books"})
-	m.sidebar.OpenSelectedDatabase()
-	m.table.SetColumns(dbColumnsToTable([]database.Column{
-		{Key: "metadata", Title: "metadata", Type: "jsonb", MinWidth: 8},
-	}))
-	m.table.SetRows(dbRowsToTable([]database.Row{
-		{"metadata": `{"publisher":"O'Reilly","tags":["go","db"]}`},
-	}))
-	return m
-}
-
-func TestHandleViewCellDetail(t *testing.T) {
+func TestHandleCellDetailKey(t *testing.T) {
 	tests := []struct {
 		name      string
 		setup     func() Model
@@ -230,7 +167,7 @@ func TestHandleViewCellDetail(t *testing.T) {
 	}
 }
 
-func TestHandleKeyPressInCellDetail(t *testing.T) {
+func TestHandleCellDetailModalKey(t *testing.T) {
 	tests := []struct {
 		name      string
 		key       string
@@ -261,4 +198,19 @@ func TestHandleKeyPressInCellDetail(t *testing.T) {
 			}
 		})
 	}
+}
+
+func modelWithJSONBColumn() Model {
+	m := New()
+	m.view.focus = FocusTable
+	m.sidebar.SetDatabases([]string{"mydb"})
+	m.sidebar.SetTables("mydb", []string{"books"})
+	m.sidebar.OpenSelectedDatabase()
+	m.table.SetColumns(dbColumnsToTable([]database.Column{
+		{Key: "metadata", Title: "metadata", Type: "jsonb", MinWidth: 8},
+	}))
+	m.table.SetRows(dbRowsToTable([]database.Row{
+		{"metadata": `{"publisher":"O'Reilly","tags":["go","db"]}`},
+	}))
+	return m
 }

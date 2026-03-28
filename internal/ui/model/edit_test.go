@@ -8,7 +8,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-func TestHandleUpdateFromCell(t *testing.T) {
+func TestHandleEditKey(t *testing.T) {
 	tests := []struct {
 		name          string
 		setup         func(*Model)
@@ -58,7 +58,7 @@ func TestHandleUpdateFromCell(t *testing.T) {
 			if tt.setup != nil {
 				tt.setup(&m)
 			}
-			got, _, _ := m.handleUpdateFromCell(keyMsg(tt.key))
+			got, _, _ := m.handleEditKey(keyMsg(tt.key))
 			next := got.(Model)
 			if next.inlineEditMode != tt.wantEditMode {
 				t.Errorf("inlineEditMode = %v, want %v", next.inlineEditMode, tt.wantEditMode)
@@ -70,7 +70,7 @@ func TestHandleUpdateFromCell(t *testing.T) {
 	}
 }
 
-func TestHandleInlineEditConfirm(t *testing.T) {
+func TestConfirmInlineEdit(t *testing.T) {
 	tests := []struct {
 		name              string
 		setup             func(*Model)
@@ -115,7 +115,7 @@ func TestHandleInlineEditConfirm(t *testing.T) {
 			if tt.setup != nil {
 				tt.setup(&m)
 			}
-			got, cmd, handled := m.handleInlineEditConfirm(keyMsg("enter"))
+			got, cmd, handled := m.confirmInlineEdit(keyMsg("enter"))
 			next := got.(Model)
 			if handled != tt.wantHandled {
 				t.Errorf("handled = %v, want %v", handled, tt.wantHandled)
@@ -295,7 +295,7 @@ func TestHelpBindingsInEditMode(t *testing.T) {
 	}
 }
 
-func TestHandleOpenEditor(t *testing.T) {
+func TestOpenEditor(t *testing.T) {
 	tests := []struct {
 		name           string
 		hasConnection  bool
@@ -320,7 +320,7 @@ func TestHandleOpenEditor(t *testing.T) {
 			if tt.hasConnection {
 				m.source = mockDataSource{}
 			}
-			next, cmd := m.handleOpenEditor()
+			next, cmd := m.openEditor()
 			got := next.(Model)
 			if tt.wantStatusText != "" && !strings.Contains(statusText(got), tt.wantStatusText) {
 				t.Errorf("status %q does not contain %q", statusText(got), tt.wantStatusText)
@@ -332,7 +332,7 @@ func TestHandleOpenEditor(t *testing.T) {
 	}
 }
 
-func TestHandleDeleteRow(t *testing.T) {
+func TestHandleDeleteKey(t *testing.T) {
 	tests := []struct {
 		name              string
 		setup             func(*Model)
@@ -432,7 +432,7 @@ func TestHandleDeleteRow(t *testing.T) {
 				tt.setup(&m)
 			}
 
-			got, cmd, handled := m.handleDeleteRow(keyMsg(tt.key), tt.prevKey)
+			got, cmd, handled := m.handleDeleteKey(keyMsg(tt.key), tt.prevKey)
 			next := got.(Model)
 			if handled != tt.wantHandled {
 				t.Errorf("handled = %v, want %v", handled, tt.wantHandled)
@@ -453,7 +453,7 @@ func TestHandleDeleteRow(t *testing.T) {
 	}
 }
 
-func TestHandleDeleteConfirm(t *testing.T) {
+func TestConfirmDelete(t *testing.T) {
 	tests := []struct {
 		name              string
 		setup             func(*Model)
@@ -528,7 +528,7 @@ func TestHandleDeleteConfirm(t *testing.T) {
 				tt.setup(&m)
 			}
 
-			got, cmd, handled := m.handleDeleteConfirm(keyMsg(tt.key))
+			got, cmd, handled := m.confirmDelete(keyMsg(tt.key))
 			next := got.(Model)
 			if handled != tt.wantHandled {
 				t.Errorf("handled = %v, want %v", handled, tt.wantHandled)
@@ -561,7 +561,7 @@ func TestHandleDeleteConfirm(t *testing.T) {
 	}
 }
 
-func TestHandleDeleteCancel(t *testing.T) {
+func TestCancelDelete(t *testing.T) {
 	tests := []struct {
 		name              string
 		pendingDelete     bool
@@ -604,7 +604,7 @@ func TestHandleDeleteCancel(t *testing.T) {
 			m := modelWithTableFocusAndData()
 			m.pendingDeleteConfirm = tt.pendingDelete
 
-			got, cmd, handled := m.handleDeleteCancel(keyMsg(tt.key))
+			got, cmd, handled := m.cancelDelete(keyMsg(tt.key))
 			next := got.(Model)
 			if handled != tt.wantHandled {
 				t.Errorf("handled = %v, want %v", handled, tt.wantHandled)
@@ -619,7 +619,7 @@ func TestHandleDeleteCancel(t *testing.T) {
 	}
 }
 
-func TestHandlePasteMsg_InlineEditMode(t *testing.T) {
+func TestDelegatePaste_InlineEditMode(t *testing.T) {
 	tests := []struct {
 		name           string
 		inlineEditMode bool
@@ -651,7 +651,7 @@ func TestHandlePasteMsg_InlineEditMode(t *testing.T) {
 				m.editbox.Focus()
 			}
 
-			next, _ := m.handlePasteMsg(tea.PasteMsg{Content: tt.pasteContent})
+			next, _ := m.delegatePaste(tea.PasteMsg{Content: tt.pasteContent})
 			got := next.(Model)
 			if got.editbox.Value() != tt.wantValue {
 				t.Errorf("editbox value = %q, want %q", got.editbox.Value(), tt.wantValue)
@@ -660,35 +660,31 @@ func TestHandlePasteMsg_InlineEditMode(t *testing.T) {
 	}
 }
 
-func TestHandleUpdateCellFromEditor(t *testing.T) {
+func TestOnCellEditorDone(t *testing.T) {
 	tests := []struct {
 		name              string
 		setup             func(*Model)
-		wantHandled       bool
 		wantCmd           bool
 		wantPendingReload bool
 		msg               EditorCellMsg
 	}{
 		{
 			name:              "runs_update_query_when_value_is_changed",
-			wantHandled:       true,
 			wantCmd:           true,
 			wantPendingReload: true,
 			msg:               EditorCellMsg{Value: "Bob", Err: nil},
 		},
 		{
 			name:              "skips_query_when_value_is_unchanged",
-			wantHandled:       false,
 			wantCmd:           false,
 			wantPendingReload: false,
 			msg:               EditorCellMsg{Value: "Alice", Err: nil},
 		},
 		{
-			name: "returns_handled_with_error_on_editor_error",
+			name: "shows_error_status_on_editor_error",
 			setup: func(m *Model) {
 				m.inlineEditMode = false
 			},
-			wantHandled:       true,
 			wantCmd:           true, // TTL status cmd
 			wantPendingReload: false,
 			msg:               EditorCellMsg{Err: errors.New("editor failed")},
@@ -698,7 +694,6 @@ func TestHandleUpdateCellFromEditor(t *testing.T) {
 			setup: func(m *Model) {
 				m.viewingQueryResult = true
 			},
-			wantHandled:       true,
 			wantCmd:           true, // TTL status cmd
 			wantPendingReload: false,
 			msg:               EditorCellMsg{Value: "Bob"},
@@ -708,17 +703,15 @@ func TestHandleUpdateCellFromEditor(t *testing.T) {
 			setup: func(m *Model) {
 				m.readOnly = true
 			},
-			wantHandled:       true,
 			wantCmd:           true, // TTL status cmd
 			wantPendingReload: false,
 			msg:               EditorCellMsg{Value: "Bob"},
 		},
 		{
-			name: "blocked_when_tab_is_not_records",
+			name: "no_op_when_tab_is_not_records",
 			setup: func(m *Model) {
 				m.tabs.SetActive(1) // Columns
 			},
-			wantHandled:       false,
 			wantCmd:           false,
 			wantPendingReload: false,
 			msg:               EditorCellMsg{Value: "Bob"},
@@ -732,25 +725,22 @@ func TestHandleUpdateCellFromEditor(t *testing.T) {
 			if tt.setup != nil {
 				tt.setup(&m)
 			}
-			got, cmd, handled := m.handleUpdateCellFromEditor(tt.msg)
-			next := got.(Model)
-			if handled != tt.wantHandled {
-				t.Errorf("handled = %v, want %v", handled, tt.wantHandled)
-			}
+			next, cmd := m.onCellEditorDone(tt.msg)
+			got := next.(Model)
 			if tt.wantCmd && cmd == nil {
 				t.Error("expected non-nil cmd, got nil")
 			}
 			if !tt.wantCmd && cmd != nil {
 				t.Errorf("expected nil cmd, got %v", cmd)
 			}
-			if next.pendingTableReload != tt.wantPendingReload {
-				t.Errorf("pendingTableReload = %v, want %v", next.pendingTableReload, tt.wantPendingReload)
+			if got.pendingTableReload != tt.wantPendingReload {
+				t.Errorf("pendingTableReload = %v, want %v", got.pendingTableReload, tt.wantPendingReload)
 			}
 		})
 	}
 }
 
-func TestHandleOpenCellEditor(t *testing.T) {
+func TestHandleCellEditorKey(t *testing.T) {
 	tests := []struct {
 		name        string
 		setup       func(*Model)
@@ -805,7 +795,7 @@ func TestHandleOpenCellEditor(t *testing.T) {
 			if tt.setup != nil {
 				tt.setup(&m)
 			}
-			_, cmd, handled := m.handleOpenCellEditor(keyMsg(tt.key))
+			_, cmd, handled := m.handleCellEditorKey(keyMsg(tt.key))
 			if handled != tt.wantHandled {
 				t.Errorf("handled = %v, want %v", handled, tt.wantHandled)
 			}

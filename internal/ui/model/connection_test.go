@@ -26,10 +26,10 @@ func TestHandleConnectionFailed(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := New()
-			next, cmd := m.handleConnectionFailed(ConnectionFailedMsg{err: tt.err})
+			next, cmd := m.onConnectionFailed(ConnectionFailedMsg{err: tt.err})
 			got := next.(Model)
 			if cmd != nil {
-				t.Errorf("handleConnectionFailed() cmd = %v, want nil", cmd)
+				t.Errorf("onConnectionFailed() cmd = %v, want nil", cmd)
 			}
 			if !strings.Contains(statusText(got), tt.wantMsg) {
 				t.Errorf("status %q does not contain %q", statusText(got), tt.wantMsg)
@@ -55,16 +55,16 @@ func TestHandleConnected(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := New()
-			next, cmd := m.handleConnected(ConnectedMsg{source: mockDataSource{}})
+			next, cmd := m.onConnected(ConnectedMsg{source: mockDataSource{}})
 			got := next.(Model)
 			if tt.wantSourceSet && !got.HasConnection() {
-				t.Error("handleConnected() source not set on model")
+				t.Error("onConnected() source not set on model")
 			}
 			if !strings.Contains(statusText(got), tt.wantStatusText) {
 				t.Errorf("status %q does not contain %q", statusText(got), tt.wantStatusText)
 			}
 			if tt.wantCmd && cmd == nil {
-				t.Error("handleConnected() cmd = nil, want LoadDatabasesCmd")
+				t.Error("onConnected() cmd = nil, want LoadDatabasesCmd")
 			}
 		})
 	}

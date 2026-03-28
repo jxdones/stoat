@@ -112,6 +112,53 @@ func (m mockDataSource) UsesSchemaQualification() bool {
 	return false
 }
 
+// statusText returns the current status bar content text for assertion.
+func statusText(m Model) string {
+	return m.statusbar.View(80).Content
+}
+
+// modelWithTableFocusAndData returns a model with FocusTable, a sidebar pointing
+// at mydb.users, and a one-column/one-row table so ActiveCell() returns a value.
+func modelWithTableFocusAndData() Model {
+	m := New()
+	m.view.focus = FocusTable
+	m.sidebar.SetDatabases([]string{"mydb"})
+	m.sidebar.SetTables("mydb", []string{"users"})
+	m.sidebar.OpenSelectedDatabase()
+	m.table.SetColumns(dbColumnsToTable([]database.Column{
+		{Key: "name", Title: "name", Type: "text", MinWidth: 4},
+	}))
+	m.table.SetRows(dbRowsToTable([]database.Row{
+		{"name": "Alice"},
+	}))
+	return m
+}
+
+// modelWithFilterboxFocusAndData returns a model ready for handleFilterKey tests:
+// filterbox focused, sidebar pointing at mydb.users, table loaded with three rows.
+func modelWithFilterboxFocusAndData() Model {
+	m := New()
+	m.view.focus = FocusFilterbox
+	m.filterbox.Focus()
+	m.source = mockDataSource{}
+	m.sidebar.SetDatabases([]string{"mydb"})
+	m.sidebar.SetTables("mydb", []string{"users"})
+	m.sidebar.OpenSelectedDatabase()
+	cols := dbColumnsToTable([]database.Column{
+		{Key: "id", Title: "id", Type: "integer"},
+		{Key: "name", Title: "name", Type: "text"},
+	})
+	rows := dbRowsToTable([]database.Row{
+		{"id": "1", "name": "Alice"},
+		{"id": "2", "name": "Bob"},
+		{"id": "3", "name": "Charlie"},
+	})
+	m.table.SetColumns(cols)
+	m.unfilteredRows = rows
+	m.table.SetRows(rows)
+	return m
+}
+
 func TestView_Smoke(t *testing.T) {
 	m := New()
 	m.view.width = 80

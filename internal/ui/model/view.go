@@ -392,46 +392,6 @@ func (m Model) renderForeignKeys(width, height int) string {
 		Render(m.fkViewport.View())
 }
 
-// fkViewportContent builds the styled string content for the foreign keys viewport.
-func (m Model) fkViewportContent() string {
-	content := []string{}
-	columnStyle := lipgloss.NewStyle().Foreground(theme.Current.TextAccent)
-	arrowStyle := lipgloss.NewStyle().Foreground(theme.Current.TextMuted)
-	refStyle := lipgloss.NewStyle().Foreground(theme.Current.TextPrimary)
-	actionLabelStyle := lipgloss.NewStyle().Foreground(theme.Current.TextMuted)
-	actionValueStyle := lipgloss.NewStyle().Foreground(theme.Current.TextWarning).Bold(true)
-
-	for _, fk := range m.tableSchema.foreignKeys {
-		indent := strings.Repeat(" ", len(fk.Column)+5)
-		line := fmt.Sprintf(
-			"%s %s %s.%s\n",
-			columnStyle.Render(fk.Column),
-			arrowStyle.Render("→"),
-			refStyle.Render(fk.RefTable),
-			refStyle.Render(fk.RefColumn),
-		)
-		if fk.OnDeleteAction != "" {
-			line += fmt.Sprintf(
-				"%s%s %s\n",
-				indent,
-				actionLabelStyle.Render("on DELETE:"),
-				actionValueStyle.Render(fk.OnDeleteAction),
-			)
-		}
-		if fk.OnUpdateAction != "" {
-			line += fmt.Sprintf(
-				"%s%s %s\n",
-				indent,
-				actionLabelStyle.Render("on UPDATE:"),
-				actionValueStyle.Render(fk.OnUpdateAction),
-			)
-		}
-		line += "\n"
-		content = append(content, line)
-	}
-	return strings.Join(content, "\n")
-}
-
 // normalizeCanvas clips/pads content to an exact width x height rectangle.
 // This prevents section-overflow artifacts when terminal space is tight.
 func normalizeCanvas(content string, width, height int) string {

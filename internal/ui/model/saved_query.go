@@ -3,6 +3,8 @@ package model
 import (
 	"strings"
 	"unicode"
+
+	tea "charm.land/bubbletea/v2"
 )
 
 // SavedQuery holds a named SQL snippet that can be expanded in the query box
@@ -106,4 +108,17 @@ func lookupSavedQuery(queries []SavedQuery, name string) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+// handleSavedQueryKey handles ctrl+n when the querybox is focused: tries to expand a saved query.
+func (m Model) handleSavedQueryKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
+	if msg.String() != "ctrl+n" || !m.isFocused(FocusQuerybox) {
+		return m, nil, false
+	}
+	next, expanded := m.ExpandSavedQuery()
+	if !expanded {
+		return m, nil, false
+	}
+	next.applyViewState()
+	return next, nil, true
 }

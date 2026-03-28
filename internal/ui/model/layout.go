@@ -1,5 +1,18 @@
 package model
 
+import (
+	"github.com/jxdones/stoat/internal/ui/common"
+	"github.com/jxdones/stoat/internal/ui/viewstate"
+)
+
+const (
+	cellDetailMinWidth     = 40
+	cellDetailMinHeight    = 10
+	cellDetailMaxWidth     = 100
+	cellDetailMaxHeight    = 30
+	cellDetailScreenMargin = 4 // minimum gap between modal edge and screen edge
+)
+
 const (
 	narrowLayoutThreshold = 52
 	minLeftPaneNarrow     = 16
@@ -154,4 +167,62 @@ func clampRange(value, min, max int) int {
 		return max
 	}
 	return value
+}
+
+// applyViewState updates component sizes and focus based on the current terminal dimensions.
+func (m *Model) applyViewState() {
+	var optionsHeight int
+	if m.helpExpanded {
+		optionsHeight = expandedOptionsHeight(m.view.width, m.fullHelpBindings())
+	} else {
+		optionsHeight = 2
+	}
+	frame := computeLayout(m.view.width, m.view.height, optionsHeight, m.detailRows())
+
+	m.view.compact = m.view.width < 80 || m.view.height < 24
+	if m.view.compact || frame.rows.mainContent <= 0 {
+		return
+	}
+
+	m.sidebar.ApplyViewState(viewstate.ViewState{
+		Width:   frame.columns.leftPane,
+		Height:  frame.rows.mainContent,
+		Focused: m.isFocused(FocusSidebar),
+	})
+
+	m.tabs.SetSize(frame.columns.mainPane)
+	m.tabs.SetFocused(m.isFocused(FocusTable))
+
+	m.querybox.SetSize(frame.columns.mainPane, frame.main.query)
+	if m.isFocused(FocusQuerybox) {
+		m.querybox.Focus()
+	} else {
+		m.querybox.Blur()
+	}
+
+	if m.isFocused(FocusFilterbox) {
+		m.filterbox.Focus()
+	} else {
+		m.filterbox.Blur()
+	}
+
+	m.editbox.SetWidth(common.BoxInnerWidth(frame.columns.mainPane))
+	if m.inlineEditMode {
+		m.editbox.Focus()
+	} else {
+		m.editbox.Blur()
+	}
+
+	m.table.SetSize(
+		common.BoxInnerWidth(frame.columns.mainPane),
+		common.PaneInnerHeight(frame.main.table),
+	)
+
+	m.fkViewport.SetWidth(common.BoxInnerWidth(frame.columns.mainPane))
+	m.fkViewport.SetHeight(common.PaneInnerHeight(frame.main.table))
+
+	cdWidth := min(clampRange(m.view.width*2/3, cellDetailMinWidth, cellDetailMaxWidth), m.view.width-cellDetailScreenMargin)
+	cdHeight := min(clampRange(m.view.height/2, cellDetailMinHeight, cellDetailMaxHeight), m.view.height-cellDetailScreenMargin)
+	cdHeight = m.cellDetail.PreferredHeight(cdHeight)
+	m.cellDetail.SetSize(cdWidth, cdHeight)
 }

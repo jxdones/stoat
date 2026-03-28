@@ -1,137 +1,229 @@
 package model
 
 import (
+	"context"
 	"fmt"
-	"strconv"
+	"os"
+	"os/exec"
 	"strings"
+	"time"
 
-	"github.com/jxdones/stoat/internal/ui/components/table"
+	tea "charm.land/bubbletea/v2"
+
+	"github.com/jxdones/stoat/internal/database"
+	"github.com/jxdones/stoat/internal/ui/components/statusbar"
+	"github.com/jxdones/stoat/internal/ui/datasource"
 )
 
-// formatSQLValue returns the value formatted as a SQL literal for the given column type.
-// Integer/real types are left unquoted; text and unknown types are single-quoted with
-// single quotes escaped by doubling. Empty value is rendered as NULL.
-func formatSQLValue(colType, value string) string {
-	if value == table.NullValue {
-		return "NULL"
+// QueryExecutedMsg is sent when a query execution completes.
+type QueryExecutedMsg struct {
+	Result database.QueryResult
+	Err    error
+	Query  string
+}
+
+// QueryRunRequestedMsg is sent when the user requests to run a query.
+type QueryRunRequestedMsg struct {
+	Query string
+}
+
+// EditorQueryMsg is sent when the user closes the editor after editing a query.
+type EditorQueryMsg struct {
+	Query string
+	Err   error
+}
+
+// handleQueryKey handles ctrl+s when the querybox is focused: submits the query for execution.
+func (m Model) handleQueryKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
+	if msg.String() != "ctrl+s" || m.view.focus != FocusQuerybox {
+		return m, nil, false
 	}
-	value = strings.TrimSpace(value)
-	if value == "" {
-		return "NULL"
+	if !m.HasConnection() {
+		cmd := m.statusbar.SetStatusWithTTL(" No active connection", statusbar.Warning, 2*time.Second)
+		return m, cmd, true
 	}
-	upper := strings.ToUpper(strings.TrimSpace(colType))
-	switch {
-	case strings.Contains(upper, "INT"), strings.Contains(upper, "NUMERIC"):
-		if _, err := strconv.ParseInt(value, 10, 64); err == nil {
-			return value
+	query := strings.TrimSpace(m.querybox.Value())
+	if query == "" {
+		cmd := m.statusbar.SetStatusWithTTL(" Query is empty", statusbar.Warning, 2*time.Second)
+		return m, cmd, true
+	}
+
+	if m.readOnly && m.isWriteQuery(query) {
+		cmd := m.statusbar.SetStatusWithTTL(" Read-only mode: write queries are not allowed", statusbar.Warning, 3*time.Second)
+		m.querybox.SetValue("")
+		return m, cmd, true
+	}
+
+	spinnerCmd := m.statusbar.StartSpinner("Running query", statusbar.Info)
+	return m, tea.Batch(spinnerCmd, RequestQueryRunCmd(query)), true
+}
+
+// onQueryExecuted handles the QueryExecutedMsg and updates the status bar.
+// Queries that return a result set (SELECT, or INSERT/UPDATE/DELETE ... RETURNING)
+// replace the table with that result. Plain DML with no result set only shows
+// the affected row count in the status bar and leaves the table as-is.
+func (m Model) onQueryExecuted(msg QueryExecutedMsg) (tea.Model, tea.Cmd) {
+	m.statusbar.StopSpinner()
+	if msg.Err != nil {
+		cmd := m.statusbar.SetStatusWithTTL(" Query failed: "+msg.Err.Error(), statusbar.Error, 4*time.Second)
+		return m, cmd
+	}
+	m.querybox.SetValue("")
+	m.view.focus = FocusTable
+
+	hasResultSet := len(msg.Result.Columns) > 0 || len(msg.Result.Rows) > 0
+	if hasResultSet {
+		m.viewingQueryResult = true
+		m.queryResultPreview = queryPreviewForHeader(msg.Query)
+		m.resetPaging()
+		m.tablePKColumns = nil
+		m.tablePKTarget = database.DatabaseTarget{}
+		m.table.SetColumns(dbColumnsToTable(msg.Result.Columns))
+		m.unfilteredRows = dbRowsToTable(msg.Result.Rows)
+		m.table.SetRows(m.unfilteredRows)
+		m.table.GotoTop()
+		m.applyViewState()
+		cmd := m.statusbar.SetStatusWithTTL(
+			fmt.Sprintf(" Query ok: %d row(s) returned", len(msg.Result.Rows)),
+			statusbar.Success,
+			3*time.Second,
+		)
+		return m, cmd
+	}
+
+	statusCmd := m.statusbar.SetStatusWithTTL(
+		fmt.Sprintf(" Query ok: %d row(s) affected", msg.Result.RowsAffected),
+		statusbar.Success,
+		3*time.Second,
+	)
+	if m.pendingTableReload {
+		m.pendingTableReload = false
+		db := m.sidebar.EffectiveDB()
+		tableName := m.sidebar.SelectedTable()
+		if db != "" && tableName != "" {
+			target := database.DatabaseTarget{Database: db, Table: tableName}
+			page := database.PageRequest{Limit: DefaultPageLimit, After: m.paging.requestAfter}
+			m.applyViewState()
+			return m, tea.Batch(statusCmd, LoadTableRowsCmd(m.source, target, page))
 		}
-		return "'" + strings.ReplaceAll(value, "'", "''") + "'"
-	case strings.Contains(upper, "REAL"), strings.Contains(upper, "FLOAT"), strings.Contains(upper, "DOUBLE"):
-		if _, err := strconv.ParseFloat(value, 64); err == nil {
-			return value
+	}
+	m.applyViewState()
+	return m, statusCmd
+}
+
+// onEditorQueryDone handles the EditorQueryMsg after the user closes the editor.
+// If the query is non-empty, it is run via the same path as the query box.
+func (m Model) onEditorQueryDone(msg EditorQueryMsg) (tea.Model, tea.Cmd) {
+	if msg.Err != nil {
+		cmd := m.statusbar.SetStatusWithTTL(" Edit cancelled: "+msg.Err.Error(), statusbar.Warning, 3*time.Second)
+		return m, cmd
+	}
+	query := strings.TrimSpace(msg.Query)
+	if query == "" {
+		cmd := m.statusbar.SetStatusWithTTL(" Empty query", statusbar.Warning, 2*time.Second)
+		return m, cmd
+	}
+	if !m.HasConnection() {
+		cmd := m.statusbar.SetStatusWithTTL(" No active connection", statusbar.Warning, 2*time.Second)
+		return m, cmd
+	}
+	if m.readOnly && m.isWriteQuery(query) {
+		cmd := m.statusbar.SetStatusWithTTL(" Read-only mode: write queries are not allowed", statusbar.Warning, 3*time.Second)
+		return m, cmd
+	}
+	spinnerCmd := m.statusbar.StartSpinner("Running query", statusbar.Info)
+	return m, tea.Batch(spinnerCmd, RequestQueryRunCmd(query))
+}
+
+// openEditor opens $EDITOR with a SQL comment template. When the user
+// saves and closes, onEditorQueryDone runs whatever was written.
+func (m Model) openEditor() (tea.Model, tea.Cmd) {
+	if !m.HasConnection() {
+		cmd := m.statusbar.SetStatusWithTTL(" No active connection", statusbar.Warning, 2*time.Second)
+		return m, cmd
+	}
+	template := "-- Write your SQL here, then save and close the editor to run it.\n\n"
+	return m, OpenEditorWithQueryCmd(template)
+}
+
+// RunQueryCmd returns a command that executes one SQL query and sends a
+// QueryExecutedMsg with either result rows/columns or an error.
+func RunQueryCmd(source datasource.DataSource, query string) tea.Cmd {
+	return func() tea.Msg {
+		if source == nil {
+			return QueryExecutedMsg{Err: database.ErrNoConnection}
 		}
-		return "'" + strings.ReplaceAll(value, "'", "''") + "'"
-	default:
-		return "'" + strings.ReplaceAll(value, "'", "''") + "'"
+		result, err := source.Query(context.Background(), query)
+		return QueryExecutedMsg{Result: result, Err: err, Query: query}
 	}
 }
 
-// quoteIdentifier quotes a SQL identifier so it is safe to use in generated SQL.
-// It wraps the name in double quotes and escapes any internal " by doubling it.
-// This prevents invalid syntax for names with spaces/special chars and SQL keywords.
-func quoteIdentifier(name string) string {
-	return `"` + strings.ReplaceAll(name, `"`, `""`) + `"`
+// RequestQueryRunCmd returns a command that schedules query execution on a
+// near-future tick. This gives the UI one render cycle to show the
+// "Running query..." status before results replace it.
+func RequestQueryRunCmd(query string) tea.Cmd {
+	return tea.Tick(120*time.Millisecond, func(time.Time) tea.Msg {
+		return QueryRunRequestedMsg{Query: query}
+	})
 }
 
-// tableRef returns a safe SQL table reference. When schema is non-empty the
-// result is "schema"."table" (used for Postgres); otherwise just "table".
-func tableRef(schema, table string) string {
-	if schema == "" {
-		return quoteIdentifier(table)
+// OpenEditorWithQueryCmd returns a command that opens the editor with the given query.
+func OpenEditorWithQueryCmd(query string) tea.Cmd {
+	f, err := os.CreateTemp("", "stoat-editor-*.sql")
+	if err != nil {
+		return func() tea.Msg {
+			return EditorQueryMsg{Err: err}
+		}
 	}
-	return quoteIdentifier(schema) + "." + quoteIdentifier(table)
+
+	_, err = f.WriteString(query)
+	if err != nil {
+		f.Close()
+		_ = os.Remove(f.Name())
+		return func() tea.Msg {
+			return EditorQueryMsg{Err: err}
+		}
+	}
+
+	path := f.Name()
+	if err := f.Close(); err != nil {
+		_ = os.Remove(path)
+		return func() tea.Msg {
+			return EditorQueryMsg{Err: err}
+		}
+	}
+
+	editor := os.Getenv("EDITOR")
+	if editor == "" {
+		editor = "vim"
+	}
+
+	cmd := exec.Command(editor, path)
+	return tea.ExecProcess(cmd, func(execErr error) tea.Msg {
+		content, readErr := os.ReadFile(path)
+		_ = os.Remove(path)
+		if execErr != nil {
+			return EditorQueryMsg{Err: execErr}
+		}
+		if readErr != nil {
+			return EditorQueryMsg{Err: readErr}
+		}
+		return EditorQueryMsg{Query: string(content), Err: nil}
+	})
 }
 
-// BuildUpdateQueryFromCell builds a SQL UPDATE query from the selected cell.
-// schema is the SQL schema prefix; pass empty string for databases that do not
-// use schema qualification (SQLite). setColumn/setColType/setValue are the column
-// being edited and its new value. When pkColumns is non-empty and row has the
-// current row, WHERE is built from primary key so only one row is updated.
-// Otherwise WHERE uses the edited column (may match multiple rows).
-// colTypeByKey maps column key to type for formatting literals (e.g. "id" -> "integer").
-func BuildUpdateQueryFromCell(schema, table, setColumn, setColType, setValue string, pkColumns []string, row map[string]string, colTypeByKey map[string]string) string {
-	setLiteral := formatSQLValue(setColType, setValue)
-	tbl := tableRef(schema, table)
-	col := quoteIdentifier(setColumn)
-
-	var whereClause string
-	usePK := len(pkColumns) > 0 && row != nil && colTypeByKey != nil
-	if usePK {
-		parts := make([]string, 0, len(pkColumns))
-		for _, pk := range pkColumns {
-			val := row[pk]
-			typ := colTypeByKey[pk]
-			parts = append(parts, quoteIdentifier(pk)+" = "+formatSQLValue(typ, val))
-		}
-		if len(parts) == len(pkColumns) {
-			whereClause = "WHERE " + strings.Join(parts, " AND ") + ";"
-		}
-	}
-	if whereClause == "" {
-		oldLiteral := formatSQLValue(setColType, row[setColumn])
-		whereClause = fmt.Sprintf("WHERE %s = %s;", col, oldLiteral)
+// queryPreviewForHeader returns a one-line, truncated preview of the query for the header.
+func queryPreviewForHeader(query string) string {
+	const queryPreviewMaxLen = 52
+	line := strings.TrimSpace(query)
+	if line == "" {
+		return ""
 	}
 
-	lines := []string{
-		fmt.Sprintf("UPDATE %s", tbl),
-		fmt.Sprintf("SET %s = %s", col, setLiteral),
-		whereClause,
-		"",
+	fields := strings.Fields(line)
+	line = strings.Join(fields, " ")
+	if len(line) <= queryPreviewMaxLen {
+		return line
 	}
-	if !usePK {
-		lines = append([]string{"-- WARNING: WHERE uses the edited column; may match multiple rows. Use primary key for a single row.", ""}, lines...)
-	}
-	return strings.Join(lines, "\n")
-}
-
-// BuildDeleteQuery builds a SQL DELETE query for the active row.
-// schema is the SQL schema prefix; pass empty string for databases that do not
-// use schema qualification (SQLite). When pkColumns is non-empty, WHERE is built
-// from primary key columns so only one row is deleted. Otherwise WHERE matches
-// all column values in the row (may match multiple rows if data is not unique).
-// colTypeByKey maps column key to type for formatting literals (e.g. "id" -> "integer").
-func BuildDeleteQuery(schema, tableName string, pkColumns []string, row map[string]string, colTypeByKey map[string]string) string {
-	tbl := tableRef(schema, tableName)
-
-	var whereClause string
-	usePK := len(pkColumns) > 0 && row != nil && colTypeByKey != nil
-	if usePK {
-		parts := make([]string, 0, len(pkColumns))
-		for _, pk := range pkColumns {
-			val := row[pk]
-			typ := colTypeByKey[pk]
-			parts = append(parts, quoteIdentifier(pk)+" = "+formatSQLValue(typ, val))
-		}
-		if len(parts) == len(pkColumns) {
-			whereClause = "WHERE " + strings.Join(parts, " AND ") + ";"
-		}
-	}
-	if whereClause == "" {
-		parts := make([]string, 0, len(row))
-		for col, val := range row {
-			typ := colTypeByKey[col]
-			parts = append(parts, quoteIdentifier(col)+" = "+formatSQLValue(typ, val))
-		}
-		whereClause = "WHERE " + strings.Join(parts, " AND ") + ";"
-	}
-
-	lines := []string{
-		fmt.Sprintf("DELETE FROM %s", tbl),
-		whereClause,
-		"",
-	}
-	if !usePK {
-		lines = append([]string{"-- WARNING: No primary key found; WHERE matches all column values. May delete multiple rows.", ""}, lines...)
-	}
-	return strings.Join(lines, "\n")
+	return line[:queryPreviewMaxLen-1] + "…"
 }

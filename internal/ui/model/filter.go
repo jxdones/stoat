@@ -12,8 +12,8 @@ import (
 	"github.com/jxdones/stoat/internal/ui/components/table"
 )
 
-// handleApplyFilter handles the apply filter shortcut key press.
-func (m Model) handleApplyFilter(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
+// handleFilterKey handles the apply filter shortcut key press.
+func (m Model) handleFilterKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
 	if m.view.focus != FocusFilterbox || msg.String() != "enter" {
 		return m, nil, false
 	}

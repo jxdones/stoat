@@ -1,17 +1,10 @@
 package model
 
-type pageNav int
+import (
+	tea "charm.land/bubbletea/v2"
 
-const (
-	// pageNavNone means a neutral reload/jump where history should be reset
-	// to the returned start cursor.
-	pageNavNone pageNav = iota
-	// pageNavNext means user requested forward paging; we push the current
-	// page start cursor onto history so previous-page can return to it.
-	pageNavNext
-	// pageNavPrev means user requested backward paging; we pop one cursor from
-	// history after the response arrives.
-	pageNavPrev
+	"github.com/jxdones/stoat/internal/database"
+	"github.com/jxdones/stoat/internal/ui/components/statusbar"
 )
 
 // pagingState tracks cursor-based page navigation for the active table.
@@ -70,4 +63,36 @@ func (m *Model) resetPaging() {
 	m.paging.currentHasMore = false
 	m.paging.afterStack = []string{""}
 	m.paging.pendingNav = pageNavNone
+}
+
+// handlePagingKey handles ctrl+n (next page) and ctrl+b (previous page) when the table is focused.
+func (m Model) handlePagingKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
+	if m.view.focus != FocusTable || !m.HasConnection() {
+		return m, nil, false
+	}
+
+	db := m.sidebar.EffectiveDB()
+	tableName := m.sidebar.SelectedTable()
+	target := database.DatabaseTarget{Database: db, Table: tableName}
+
+	if msg.String() == "ctrl+n" && m.paging.currentHasMore {
+		m.setPendingPageNav(pageNavNext)
+		m.paging.requestAfter = m.paging.currentAfter
+		spinnerCmd := m.statusbar.StartSpinner("Loading page", statusbar.Info)
+		return m, tea.Batch(spinnerCmd, LoadTableRowsCmd(m.source, target, database.PageRequest{
+			Limit: DefaultPageLimit,
+			After: m.paging.currentAfter,
+		})), true
+	}
+	if msg.String() == "ctrl+b" && len(m.paging.afterStack) > 1 {
+		prevCursor := m.paging.afterStack[len(m.paging.afterStack)-2]
+		m.setPendingPageNav(pageNavPrev)
+		m.paging.requestAfter = prevCursor
+		spinnerCmd := m.statusbar.StartSpinner("Loading page", statusbar.Info)
+		return m, tea.Batch(spinnerCmd, LoadTableRowsCmd(m.source, target, database.PageRequest{
+			Limit: DefaultPageLimit,
+			After: prevCursor,
+		})), true
+	}
+	return m, nil, false
 }

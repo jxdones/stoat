@@ -174,7 +174,7 @@ func TestFilterRowsByExpression(t *testing.T) {
 	}
 }
 
-func TestHandleApplyFilter(t *testing.T) {
+func TestHandleFilterKey(t *testing.T) {
 	tests := []struct {
 		name          string
 		setup         func(*Model)
@@ -252,7 +252,7 @@ func TestHandleApplyFilter(t *testing.T) {
 				tt.setup(&m)
 			}
 			m.filterbox.SetValue(tt.filterValue)
-			got, _, handled := m.handleApplyFilter(keyMsg("enter"))
+			got, _, handled := m.handleFilterKey(keyMsg("enter"))
 			next := got.(Model)
 			if handled != tt.wantHandled {
 				t.Errorf("handled = %v, want %v", handled, tt.wantHandled)

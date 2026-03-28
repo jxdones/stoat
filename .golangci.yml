@@ -20,3 +20,11 @@ linters:
           - errcheck
         path: 'internal/ui/model/msgs\.go'
         text: 'f\.Close'
+      - linters:
+          - errcheck
+        path: 'internal/ui/model/edit\.go'
+        text: 'f\.Close'
+      - linters:
+          - errcheck
+        path: 'internal/ui/model/query\.go'
+        text: 'f\.Close'

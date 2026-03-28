@@ -30,7 +30,7 @@ func TestHandleDatabasesLoaded(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			m := New()
 			m.source = mockDataSource{}
-			next, cmd := m.handleDatabasesLoaded(DatabasesLoadedMsg{Databases: tt.databases})
+			next, cmd := m.onDatabasesLoaded(DatabasesLoadedMsg{Databases: tt.databases})
 			got := next.(Model)
 			if !strings.Contains(statusText(got), tt.wantStatusText) {
 				t.Errorf("status %q does not contain %q", statusText(got), tt.wantStatusText)
@@ -71,7 +71,7 @@ func TestHandleTablesLoaded(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := New()
-			next, _ := m.handleTablesLoaded(TablesLoadedMsg{Database: "mydb", Tables: tt.tables, Err: tt.err})
+			next, _ := m.onTablesLoaded(TablesLoadedMsg{Database: "mydb", Tables: tt.tables, Err: tt.err})
 			got := next.(Model)
 			if !strings.Contains(statusText(got), tt.wantStatusText) {
 				t.Errorf("status %q does not contain %q", statusText(got), tt.wantStatusText)
