@@ -7,9 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.2] - 2026-03-28
+
 ### Added
 
 - **Show `NULL` on NULL fields.** Now NULL fields show `NULL` to have more clarity on the content of a cell. If `y` is pressed on a NULL field, it returns an empty string.
+- **Sidebar: vim-style count + `j` / `k`.** Support a numeric count prefix before `j`/`k` so e.g. `5j` / `3k` move the databases/schemas and tables selection by that many rows, consistent with the table view’s digit buffer + motion pattern.
 
 ### Chore
 
