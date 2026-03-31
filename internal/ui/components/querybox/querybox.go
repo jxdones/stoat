@@ -21,7 +21,6 @@ type Model struct {
 // New creates a new query box model with the default configuration.
 func New() Model {
 	ta := textarea.New()
-	ta.Prompt = "sql> "
 	ta.Placeholder = "Enter your query here..."
 	ta.ShowLineNumbers = true
 	ta.CharLimit = 10000

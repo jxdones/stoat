@@ -56,7 +56,7 @@ func (m Model) View() tea.View {
 		optionsHeight = 2
 	}
 
-	frame := computeLayout(m.view.width, m.view.height, optionsHeight, m.detailRows())
+	frame := computeLayout(m.view.width, m.view.height, optionsHeight, m.detailRows(), m.effectiveQueryRows())
 
 	base := normalizeCanvas(m.renderBase(frame), m.view.width, frame.rows.mainContent)
 	lines := []string{base}

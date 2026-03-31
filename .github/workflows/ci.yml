@@ -17,8 +17,10 @@ jobs:
       - uses: golangci/golangci-lint-action@v7
         with:
           version: v2.10.1
-      - name: Run Tests 
-        run: make test 
+      - name: Run govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+      - name: Run Tests
+        run: make test
       - name: Run Build
         run: make build
       - name: Run Integration Tests

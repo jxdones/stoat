@@ -1,6 +1,8 @@
 package model
 
 import (
+	"strings"
+
 	"github.com/jxdones/stoat/internal/ui/common"
 	"github.com/jxdones/stoat/internal/ui/viewstate"
 )
@@ -29,6 +31,8 @@ const (
 	mainDetailRowsNormal = 1
 	mainDetailRowsEdit   = 3
 	mainQueryRows        = 3
+	maxQueryRows         = 10
+	queryGrowthThreshold = 30 // terminal height at which the query box starts growing
 	minTableRows         = 1
 	minSectionRows       = 1
 )
@@ -113,12 +117,12 @@ func computeRows(height, optionsHeight int) layoutRows {
 }
 
 // computeMainSections derives heights for main-pane sections.
-func computeMainSections(height, detailRows int) mainSections {
+func computeMainSections(height, detailRows, queryRows int) mainSections {
 	sections := mainSections{
 		header: mainHeaderRows,
 		tabs:   mainTabsRows,
 		detail: detailRows,
-		query:  mainQueryRows,
+		query:  queryRows,
 	}
 
 	tableHeight := height - (sections.header + sections.tabs + sections.detail + sections.query)
@@ -147,10 +151,10 @@ func computeMainSections(height, detailRows int) mainSections {
 }
 
 // computeLayout computes the full frame layout for the current terminal size.
-func computeLayout(width, height, optionsHeight, detailRows int) layout {
+func computeLayout(width, height, optionsHeight, detailRows, queryRows int) layout {
 	cols := computeColumns(width)
 	rows := computeRows(height, optionsHeight)
-	main := computeMainSections(rows.mainContent, detailRows)
+	main := computeMainSections(rows.mainContent, detailRows, queryRows)
 	return layout{
 		columns: cols,
 		rows:    rows,
@@ -177,7 +181,8 @@ func (m *Model) applyViewState() {
 	} else {
 		optionsHeight = 2
 	}
-	frame := computeLayout(m.view.width, m.view.height, optionsHeight, m.detailRows())
+
+	frame := computeLayout(m.view.width, m.view.height, optionsHeight, m.detailRows(), m.effectiveQueryRows())
 
 	m.view.compact = m.view.width < 80 || m.view.height < 24
 	if m.view.compact || frame.rows.mainContent <= 0 {
@@ -225,4 +230,15 @@ func (m *Model) applyViewState() {
 	cdHeight := min(clampRange(m.view.height/2, cellDetailMinHeight, cellDetailMaxHeight), m.view.height-cellDetailScreenMargin)
 	cdHeight = m.cellDetail.PreferredHeight(cdHeight)
 	m.cellDetail.SetSize(cdWidth, cdHeight)
+}
+
+// effectiveQueryRows returns the query box height in rows for the current model state.
+// On short terminals (< queryGrowthThreshold), it returns the fixed minimum.
+// On taller terminals, it grows with the content up to maxQueryRows.
+func (m Model) effectiveQueryRows() int {
+	if m.view.height < queryGrowthThreshold {
+		return mainQueryRows
+	}
+	lines := strings.Count(m.querybox.Value(), "\n") + 1
+	return clampRange(lines+2, mainQueryRows, maxQueryRows)
 }

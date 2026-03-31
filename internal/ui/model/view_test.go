@@ -72,22 +72,22 @@ func TestRenderBase(t *testing.T) {
 	}{
 		{
 			name:      "zero_main_content_returns_empty",
-			frame:     computeLayout(80, 1, 2, mainDetailRowsNormal),
+			frame:     computeLayout(80, 1, 2, mainDetailRowsNormal, mainQueryRows),
 			wantEmpty: true,
 		},
 		{
 			name:         "normal_frame_returns_base_with_header_and_placeholder",
-			frame:        computeLayout(80, 24, 2, mainDetailRowsNormal),
+			frame:        computeLayout(80, 24, 2, mainDetailRowsNormal, mainQueryRows),
 			wantContains: []string{"No connection", "Filter:", "No data source"},
 		},
 		{
 			name:         "narrow_width_base_still_has_header",
-			frame:        computeLayout(50, 20, 2, mainDetailRowsNormal),
+			frame:        computeLayout(50, 20, 2, mainDetailRowsNormal, mainQueryRows),
 			wantContains: []string{"No connection", "Filter:"},
 		},
 		{
 			name:         "small_height_base_has_table_placeholder",
-			frame:        computeLayout(80, 15, 2, mainDetailRowsNormal),
+			frame:        computeLayout(80, 15, 2, mainDetailRowsNormal, mainQueryRows),
 			wantContains: []string{"No connection", "No data source"},
 		},
 	}

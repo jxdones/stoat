@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.3] - 2026-03-30
+
+### Changed
+
+- **Query box grows with content.** On terminals taller than 30 rows, the query box expands as you type, up to 10 rows, so longer queries are visible without scrolling. On smaller terminals it stays at the fixed 3-row height.
+- **Removed `sql>` prompt from query box.** The prompt prefix was visual noise. The placeholder text already makes the intent clear.
+
 ## [0.14.2] - 2026-03-28
 
 ### Added

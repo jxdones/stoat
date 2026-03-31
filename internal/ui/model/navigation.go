@@ -91,6 +91,7 @@ func (m Model) delegateToFocused(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case FocusQuerybox:
 		next, cmd := m.querybox.Update(msg)
 		m.querybox = next
+		m.applyViewState()
 		return m, cmd
 	case FocusFilterbox:
 		next, cmd := m.filterbox.Update(msg)

@@ -3,15 +3,15 @@ package model
 import "testing"
 
 func TestLayout_Smoke(t *testing.T) {
-	layout := computeLayout(80, 24, 2, mainDetailRowsNormal)
+	layout := computeLayout(80, 24, 2, mainDetailRowsNormal, mainQueryRows)
 	if layout.columns.leftPane != 18 {
 		t.Errorf("leftPane = %d, want 18", layout.columns.leftPane)
 	}
 }
 
 func TestComputeLayoutExpandedHelpShrinksTable(t *testing.T) {
-	collapsed := computeLayout(80, 24, 2, mainDetailRowsNormal)
-	expanded := computeLayout(80, 24, 6, mainDetailRowsNormal)
+	collapsed := computeLayout(80, 24, 2, mainDetailRowsNormal, mainQueryRows)
+	expanded := computeLayout(80, 24, 6, mainDetailRowsNormal, mainQueryRows)
 	if expanded.main.table >= collapsed.main.table {
 		t.Errorf("table = %d, want smaller than %d", expanded.main.table, collapsed.main.table)
 	}
@@ -211,7 +211,7 @@ func TestComputeMainSections(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := computeMainSections(tt.height, mainDetailRowsNormal)
+			got := computeMainSections(tt.height, mainDetailRowsNormal, mainQueryRows)
 			if got.header != tt.wantSections.header {
 				t.Errorf("header = %d, want %d", got.header, tt.wantSections.header)
 			}
