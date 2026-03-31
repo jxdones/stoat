@@ -68,7 +68,7 @@ func main() {
 		out, err := os.OpenFile(
 			filepath.Join(home, ".stoat", "debug.log"),
 			os.O_APPEND|os.O_CREATE|os.O_WRONLY,
-			0o644,
+			0o600,
 		)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "debug log: %v\n", err)

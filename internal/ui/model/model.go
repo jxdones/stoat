@@ -2,7 +2,6 @@ package model
 
 import (
 	"io"
-	"strings"
 
 	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
@@ -181,12 +180,11 @@ func (m *Model) SetReadOnly(readOnly bool) {
 }
 
 // isWriteQuery checks if the query is a write query.
+// Blocks WITH because it can contain write queries.
 func (m Model) isWriteQuery(query string) bool {
-	q := strings.ToUpper(strings.TrimSpace(query))
-	for _, kw := range []string{"INSERT", "UPDATE", "DELETE", "DROP", "CREATE", "ALTER", "TRUNCATE"} {
-		if strings.HasPrefix(q, kw) {
-			return true
-		}
+	switch database.FirstSQLKeyword(query) {
+	case "", "SELECT", "EXPLAIN", "SHOW", "DESCRIBE", "DESC", "PRAGMA", "TABLE":
+		return false
 	}
-	return false
+	return true
 }

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Debug log file permissions tightened to `0600`.** Previously created as `0644`, making it readable by other users on the same machine. The log can contain connection strings.
+- **Read-only mode now correctly blocks comment-prefixed write queries.** Queries like `-- comment\nINSERT ...` were not detected as writes due to `HasPrefix` matching. Switched to `FirstSQLKeyword` which skips comments. `WITH` is also blocked since CTEs can wrap write queries. `EXPLAIN`, `SHOW`, `DESCRIBE`, `DESC`, `PRAGMA`, and `TABLE` are explicitly allowed.
+
 ## [0.14.3] - 2026-03-30
 
 ### Changed

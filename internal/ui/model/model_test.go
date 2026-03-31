@@ -285,14 +285,44 @@ func TestIsWriteQuery(t *testing.T) {
 			want:  false,
 		},
 		{
-			name:  "with_clause_select_is_not_write",
-			query: "WITH recent AS (SELECT * FROM users) SELECT * FROM recent",
+			name:  "explain_is_not_write",
+			query: "EXPLAIN SELECT * FROM users",
 			want:  false,
 		},
 		{
-			name:  "comment_then_insert_is_not_detected_as_write",
-			query: "-- comment\nINSERT INTO users(id) VALUES (1)",
+			name:  "show_is_not_write",
+			query: "SHOW tables",
 			want:  false,
+		},
+		{
+			name:  "describe_is_not_write",
+			query: "DESCRIBE users",
+			want:  false,
+		},
+		{
+			name:  "desc_is_not_write",
+			query: "DESC users",
+			want:  false,
+		},
+		{
+			name:  "pragma_is_not_write",
+			query: "PRAGMA table_info(users)",
+			want:  false,
+		},
+		{
+			name:  "table_shorthand_is_not_write",
+			query: "TABLE users",
+			want:  false,
+		},
+		{
+			name:  "with_clause_is_write",
+			query: "WITH recent AS (SELECT * FROM users) SELECT * FROM recent",
+			want:  true,
+		},
+		{
+			name:  "comment_then_insert_is_write",
+			query: "-- comment\nINSERT INTO users(id) VALUES (1)",
+			want:  true,
 		},
 		{
 			name:  "empty_query_is_not_write",
