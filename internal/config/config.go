@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -72,7 +73,14 @@ func EnsureConfigDir() error {
 	if err != nil {
 		return err
 	}
-	return os.MkdirAll(dir, 0o700)
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return err
+	}
+
+	if err = os.Chmod(dir, 0o700); err != nil {
+		fmt.Fprintf(os.Stderr, "stoat: warning: could not set permissions on config directory: %v\n", err)
+	}
+	return nil
 }
 
 // DefaultConfig returns config with standard values (e.g. for first-run).
@@ -111,6 +119,12 @@ func LoadConfig() (Config, error) {
 	}
 	cfg := Config{}
 	_, err = os.Stat(path)
+	if err == nil {
+		if err := os.Chmod(path, 0o600); err != nil {
+			fmt.Fprintf(os.Stderr, "stoat: warning: could not set permissions on config file: %v\n", err)
+		}
+	}
+
 	if err != nil {
 		if os.IsNotExist(err) {
 			cfg = DefaultConfig()
