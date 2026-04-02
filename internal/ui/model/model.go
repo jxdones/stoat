@@ -2,6 +2,7 @@ package model
 
 import (
 	"io"
+	"regexp"
 
 	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
@@ -20,6 +21,9 @@ import (
 	"github.com/jxdones/stoat/internal/ui/datasource"
 	"github.com/jxdones/stoat/internal/ui/theme"
 )
+
+// regex to redact the password from the DSN
+var dsnRedactRegex = regexp.MustCompile(`://([^:@]+):(.+)@`)
 
 // Model is the root Bubble Tea model; it composes the sidebar, table, status bar, and other components.
 type Model struct {
@@ -187,4 +191,9 @@ func (m Model) isWriteQuery(query string) bool {
 		return false
 	}
 	return true
+}
+
+// redactSecret redacts the password from the DSN
+func redactSecret(msg string) string {
+	return dsnRedactRegex.ReplaceAllString(msg, "://$1:[redacted]@")
 }

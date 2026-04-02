@@ -69,3 +69,40 @@ func TestHandleConnected(t *testing.T) {
 		})
 	}
 }
+
+func TestRedactSecret(t *testing.T) {
+	tests := []struct {
+		name         string
+		dsn          string
+		wantRedacted string
+	}{
+		{
+			name:         "standard_postgres_dsn",
+			dsn:          "postgres://user:password@host:5432/dbname",
+			wantRedacted: "postgres://user:[redacted]@host:5432/dbname",
+		},
+		{
+			name:         "standard_mysql_dsn",
+			dsn:          "mysql://user:password@host:3306/dbname",
+			wantRedacted: "mysql://user:[redacted]@host:3306/dbname",
+		},
+		{
+			name:         "dsn_embedded_in_message",
+			dsn:          "dial error: postgres://user:password@host:5432/dbname: connection refused",
+			wantRedacted: "dial error: postgres://user:[redacted]@host:5432/dbname: connection refused",
+		},
+		{
+			name:         "dsn_with_complex_password",
+			dsn:          "mysql://user:p@$$w0rd!@host:3306/dbname",
+			wantRedacted: "mysql://user:[redacted]@host:3306/dbname",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := redactSecret(tt.dsn)
+			if got != tt.wantRedacted {
+				t.Errorf("redactSecret(%q) = %q, want %q", tt.dsn, got, tt.wantRedacted)
+			}
+		})
+	}
+}

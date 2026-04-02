@@ -131,7 +131,7 @@ func (m Model) onConnected(msg ConnectedMsg) (tea.Model, tea.Cmd) {
 // onConnectionFailed shows a sticky error in the status bar.
 func (m Model) onConnectionFailed(msg ConnectionFailedMsg) (tea.Model, tea.Cmd) {
 	m.statusbar.StopSpinner()
-	m.statusbar.SetStatus(" Connection failed: "+msg.err.Error(), statusbar.Error)
+	m.statusbar.SetStatus(" Connection failed: "+redactSecret(msg.err.Error()), statusbar.Error)
 	return m, nil
 }
 
