@@ -251,44 +251,51 @@ func TestEditModeBlocksNavigationKeys(t *testing.T) {
 
 func TestHelpBindingsInEditMode(t *testing.T) {
 	tests := []struct {
-		name           string
-		inlineEditMode bool
-		wantGlobalsNil bool
-		wantPaneKeys   []string
+		name             string
+		inlineEditMode   bool
+		wantGlobalsInBar bool
+		wantPaneKeys     []string
 	}{
 		{
-			name:           "edit_mode_returns_only_editbox_bindings",
-			inlineEditMode: true,
-			wantGlobalsNil: true,
-			wantPaneKeys:   []string{"enter", "esc"},
+			name:             "edit_mode_shows_only_editbox_bindings",
+			inlineEditMode:   true,
+			wantGlobalsInBar: false,
+			wantPaneKeys:     []string{"enter", "esc"},
 		},
 		{
-			name:           "normal_mode_returns_table_bindings_and_globals",
-			inlineEditMode: false,
-			wantGlobalsNil: false,
+			name:             "normal_mode_includes_global_bindings",
+			inlineEditMode:   false,
+			wantGlobalsInBar: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := modelWithTableFocusAndData()
 			m.inlineEditMode = tt.inlineEditMode
-			pane, global := m.helpBindings()
-			if tt.wantGlobalsNil && len(global) != 0 {
-				t.Errorf("global bindings = %d, want 0", len(global))
+			bindings := m.statusBindings()
+			hasGlobal := false
+			for _, b := range bindings {
+				if b.Help().Key == "tab" {
+					hasGlobal = true
+					break
+				}
 			}
-			if !tt.wantGlobalsNil && len(global) == 0 {
-				t.Error("expected non-empty global bindings")
+			if tt.wantGlobalsInBar && !hasGlobal {
+				t.Error("expected global bindings in status bar")
+			}
+			if !tt.wantGlobalsInBar && hasGlobal {
+				t.Error("global bindings should be suppressed in edit mode")
 			}
 			for _, wantKey := range tt.wantPaneKeys {
 				found := false
-				for _, b := range pane {
+				for _, b := range bindings {
 					if strings.Contains(b.Help().Key, wantKey) {
 						found = true
 						break
 					}
 				}
 				if !found {
-					t.Errorf("pane bindings missing key %q", wantKey)
+					t.Errorf("status bindings missing key %q", wantKey)
 				}
 			}
 		})

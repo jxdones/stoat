@@ -7,8 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.4] - 2026-04-02
+
+### Changed
+
+- **Shortcuts bar trimmed to 3–4 hints per pane.** Each pane now shows only its most-reached-for bindings; everything else is accessible via `?`.
+
 ### Fixed
 
+- **PostgreSQL now selects the correct default schema.** `DefaultDatabase` was querying `current_database()`, returning the database name instead of the active schema. Switched to `current_schema()` so the sidebar pre-selects the right schema for non-default `search_path` configurations.
+- **MySQL indexes now correctly report uniqueness.** `information_schema.statistics.NON_UNIQUE` was being assigned directly to the `Unique` field, inverting the flag for every index. Unique indexes were shown as non-unique and vice versa.
 - **Debug log file permissions tightened to `0600`.** Previously created as `0644`, making it readable by other users on the same machine. The log can contain connection strings.
 - **Read-only mode now correctly blocks comment-prefixed write queries.** Queries like `-- comment\nINSERT ...` were not detected as writes due to `HasPrefix` matching. Switched to `FirstSQLKeyword` which skips comments. `WITH` is also blocked since CTEs can wrap write queries. `EXPLAIN`, `SHOW`, `DESCRIBE`, `DESC`, `PRAGMA`, and `TABLE` are explicitly allowed.
 - **Connection failures no longer expose passwords in the status bar.** The DSN password is redacted before the error is displayed.

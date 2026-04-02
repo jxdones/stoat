@@ -179,7 +179,7 @@ func TestView(t *testing.T) {
 	}
 }
 
-func TestHelpBindings(t *testing.T) {
+func TestKeyMap(t *testing.T) {
 	tests := []struct {
 		name     string
 		wantKey  string
@@ -193,9 +193,9 @@ func TestHelpBindings(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			bindings := HelpBindings()
+			bindings := Keys.ShortHelp()
 			if len(bindings) == 0 {
-				t.Fatal("HelpBindings() returned empty slice")
+				t.Fatal("ShortHelp() returned empty slice")
 			}
 			var found bool
 			for _, b := range bindings {
@@ -209,7 +209,7 @@ func TestHelpBindings(t *testing.T) {
 				}
 			}
 			if !found {
-				t.Errorf("HelpBindings() should include key %q", tt.wantKey)
+				t.Errorf("ShortHelp() should include key %q", tt.wantKey)
 			}
 		})
 	}

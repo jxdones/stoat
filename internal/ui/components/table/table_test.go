@@ -1065,23 +1065,23 @@ func Test_View_returns_non_empty_and_has_header_and_body_lines(t *testing.T) {
 	}
 }
 
-func Test_HelpBindings_returns_non_empty_bindings(t *testing.T) {
-	bindings := HelpBindings()
-	if len(bindings) == 0 {
-		t.Error("HelpBindings() returned empty slice")
+func Test_KeyMap_ShortHelp_returns_non_empty_bindings(t *testing.T) {
+	if len(Keys.ShortHelp()) == 0 {
+		t.Error("ShortHelp() returned empty slice")
 	}
 }
 
-func Test_HelpBindings_includes_delete_row(t *testing.T) {
-	bindings := HelpBindings()
-	for _, b := range bindings {
-		for _, k := range b.Keys() {
-			if k == "d" {
-				return
+func Test_KeyMap_FullHelp_includes_delete_row(t *testing.T) {
+	for _, group := range Keys.FullHelp() {
+		for _, b := range group {
+			for _, k := range b.Keys() {
+				if k == "d" {
+					return
+				}
 			}
 		}
 	}
-	t.Error("HelpBindings() missing binding for d (delete row)")
+	t.Error("FullHelp() missing binding for d (delete row)")
 }
 
 func Test_recalculateWidthsFromRows(t *testing.T) {

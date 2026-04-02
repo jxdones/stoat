@@ -4,6 +4,7 @@ import (
 	"regexp"
 	"testing"
 
+	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/jxdones/stoat/internal/ui/testutil"
@@ -308,38 +309,50 @@ func TestAdvanceCursor(t *testing.T) {
 	}
 }
 
-func TestHelpBindings(t *testing.T) {
+func TestKeyMap(t *testing.T) {
 	tests := []struct {
 		name     string
 		wantKeys []string // any of these keys counts as a match (for bindings with multiple keys)
 		wantHelp string
+		short    bool // true = check ShortHelp, false = check FullHelp
 	}{
 		{
-			name:     "run_query_binding",
+			name:     "run_query_in_short_help",
 			wantKeys: []string{"ctrl+s"},
 			wantHelp: "run query",
+			short:    true,
 		},
 		{
-			name:     "expand_saved_query_binding",
-			wantKeys: []string{"ctrl+n"},
-			wantHelp: "expand saved query",
-		},
-		{
-			name:     "open_in_editor_binding",
-			wantKeys: []string{"ctrl+e"},
-			wantHelp: "open in editor",
-		},
-		{
-			name:     "clear_query_binding",
+			name:     "clear_query_in_short_help",
 			wantKeys: []string{"ctrl+l"},
 			wantHelp: "clear query",
+			short:    true,
+		},
+		{
+			name:     "expand_saved_query_in_full_help",
+			wantKeys: []string{"ctrl+n"},
+			wantHelp: "expand saved query",
+			short:    false,
+		},
+		{
+			name:     "open_in_editor_in_full_help",
+			wantKeys: []string{"ctrl+e"},
+			wantHelp: "open in editor",
+			short:    false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			bindings := HelpBindings()
+			var bindings []key.Binding
+			if tt.short {
+				bindings = Keys.ShortHelp()
+			} else {
+				for _, group := range Keys.FullHelp() {
+					bindings = append(bindings, group...)
+				}
+			}
 			if len(bindings) == 0 {
-				t.Fatal("HelpBindings() returned empty slice")
+				t.Fatal("bindings returned empty slice")
 			}
 			wantKeySet := make(map[string]bool)
 			for _, k := range tt.wantKeys {
@@ -369,7 +382,7 @@ func TestHelpBindings(t *testing.T) {
 				}
 			}
 			if !found {
-				t.Errorf("HelpBindings() should include one of keys %q", tt.wantKeys)
+				t.Errorf("bindings should include one of keys %q", tt.wantKeys)
 			}
 		})
 	}

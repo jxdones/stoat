@@ -238,9 +238,9 @@ func Indexes(ctx context.Context, db *sql.DB, target database.DatabaseTarget) ([
 		var (
 			indexName  string
 			columnName string
-			isUnique   bool
+			nonUnique  bool
 		)
-		if err := rows.Scan(&indexName, &columnName, &isUnique); err != nil {
+		if err := rows.Scan(&indexName, &columnName, &nonUnique); err != nil {
 			return nil, err
 		}
 		indexName = strings.TrimSpace(indexName)
@@ -252,7 +252,7 @@ func Indexes(ctx context.Context, db *sql.DB, target database.DatabaseTarget) ([
 		if !ok {
 			index = &database.Index{
 				Name:   indexName,
-				Unique: isUnique,
+				Unique: !nonUnique,
 			}
 			indexByName[indexName] = index
 			order = append(order, indexName)

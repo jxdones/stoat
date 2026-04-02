@@ -24,7 +24,7 @@ func TestView(t *testing.T) {
 			name:         "normal_size_returns_full_layout",
 			width:        80,
 			height:       24,
-			wantContains: []string{"No connection", "Filter:", "No data source", " Ready", "j/k", "g/G"},
+			wantContains: []string{"No connection", "Filter:", "No data source", " Ready", "j/k", "enter"},
 			altScreen:    true,
 		},
 		{
@@ -248,7 +248,7 @@ func TestRenderOptions(t *testing.T) {
 		{
 			name:         "base_returns_non_empty_with_help",
 			width:        80,
-			wantContains: []string{"j/k", "g/G"},
+			wantContains: []string{"j/k", "enter"},
 		},
 		{
 			name:         "large_width_still_renders",
@@ -571,14 +571,34 @@ func TestStatusBindings(t *testing.T) {
 		assertBindingExists(t, bindings, "q", "quit")
 	})
 
-	t.Run("pane_focus_keeps_global_bindings", func(t *testing.T) {
+	t.Run("pane_focus_includes_short_global_bindings", func(t *testing.T) {
 		m := New()
 		m.view.focus = FocusTable
 		bindings := m.statusBindings()
 		assertBindingExists(t, bindings, "tab", "focus panes")
-		assertBindingExists(t, bindings, "shift+tab", "focus previous pane")
-		assertBindingExists(t, bindings, "esc", "clear focus")
-		assertBindingExists(t, bindings, "ctrl+n/b", "next/prev page")
+		assertBindingExists(t, bindings, "c", "open connections")
+		assertBindingExists(t, bindings, "?", "help")
+	})
+
+	t.Run("pane_focus_includes_short_pane_bindings", func(t *testing.T) {
+		m := New()
+		m.view.focus = FocusTable
+		bindings := m.statusBindings()
+		assertBindingExists(t, bindings, "hjkl", "move")
+		assertBindingExists(t, bindings, "enter", "edit cell")
+		assertBindingExists(t, bindings, "y", "copy cell value")
+	})
+
+	t.Run("full_help_includes_all_global_bindings", func(t *testing.T) {
+		m := New()
+		m.view.focus = FocusTable
+		var all []key.Binding
+		for _, group := range m.fullHelpBindings() {
+			all = append(all, group...)
+		}
+		assertBindingExists(t, all, "shift+tab", "focus previous pane")
+		assertBindingExists(t, all, "esc", "clear focus")
+		assertBindingExists(t, all, "ctrl+n/b", "next/prev page")
 	})
 }
 

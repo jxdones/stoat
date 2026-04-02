@@ -63,8 +63,11 @@ func (m Model) View() tea.View {
 	return tea.NewView(m.input.View())
 }
 
-// HelpBindings returns the key bindings for the filter box.
-func HelpBindings() []key.Binding {
+// KeyMap defines the key bindings for the filter box.
+type KeyMap struct{}
+
+// ShortHelp returns the primary bindings shown in the collapsed shortcuts bar.
+func (k KeyMap) ShortHelp() []key.Binding {
 	return []key.Binding{
 		key.NewBinding(
 			key.WithKeys("enter"),
@@ -72,3 +75,18 @@ func HelpBindings() []key.Binding {
 		),
 	}
 }
+
+// FullHelp returns all bindings for the expanded help view.
+func (k KeyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{
+		{
+			key.NewBinding(
+				key.WithKeys("enter"),
+				key.WithHelp("enter", "apply filter"),
+			),
+		},
+	}
+}
+
+// Keys is the default KeyMap for the filter box.
+var Keys = KeyMap{}

@@ -234,16 +234,15 @@ func (m Model) View() tea.View {
 	return tea.NewView(content)
 }
 
-// HelpBindings returns the key bindings for the sidebar.
-func HelpBindings() []key.Binding {
+// KeyMap defines the key bindings for the sidebar.
+type KeyMap struct{}
+
+// ShortHelp returns the primary bindings shown in the collapsed shortcuts bar.
+func (k KeyMap) ShortHelp() []key.Binding {
 	return []key.Binding{
 		key.NewBinding(
 			key.WithKeys("up", "down", "j", "k"),
 			key.WithHelp("j/k", "navigate"),
-		),
-		key.NewBinding(
-			key.WithKeys("g", "home", "G", "end"),
-			key.WithHelp("g/G", "jump top/bottom"),
 		),
 		key.NewBinding(
 			key.WithKeys("enter"),
@@ -251,6 +250,29 @@ func HelpBindings() []key.Binding {
 		),
 	}
 }
+
+// FullHelp returns all bindings for the expanded help view.
+func (k KeyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{
+		{
+			key.NewBinding(
+				key.WithKeys("up", "down", "j", "k"),
+				key.WithHelp("j/k", "navigate"),
+			),
+			key.NewBinding(
+				key.WithKeys("g", "home", "G", "end"),
+				key.WithHelp("g/G", "jump top/bottom"),
+			),
+			key.NewBinding(
+				key.WithKeys("enter"),
+				key.WithHelp("enter", "open/focus table"),
+			),
+		},
+	}
+}
+
+// Keys is the default KeyMap for the sidebar.
+var Keys = KeyMap{}
 
 // viewportLines returns a slice of lines for the current viewport, with "…" markers
 // pinned to the absolute first/last row when content overflows in that direction.

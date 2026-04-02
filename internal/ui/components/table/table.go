@@ -265,51 +265,79 @@ func (m *Model) GotoLastColumn() {
 	m.ensureVisibleColumn()
 }
 
-// HelpBindings returns the key bindings for the table.
-func HelpBindings() []key.Binding {
+// KeyMap defines the key bindings for the table.
+type KeyMap struct{}
+
+// ShortHelp returns the primary bindings shown in the collapsed shortcuts bar.
+func (k KeyMap) ShortHelp() []key.Binding {
 	return []key.Binding{
 		key.NewBinding(
 			key.WithKeys("up", "down", "left", "right", "h", "j", "k", "l"),
-			key.WithHelp("h/j/k/l", "move"),
-		),
-		key.NewBinding(
-			key.WithKeys("home", "g", "end", "G"),
-			key.WithHelp("g/G", "top/bottom"),
-		),
-		key.NewBinding(
-			key.WithKeys("0", "$"),
-			key.WithHelp("0/$", "first/last column"),
-		),
-		key.NewBinding(
-			key.WithKeys("ctrl+n", "ctrl+b"),
-			key.WithHelp("ctrl+n/b", "next/prev page"),
-		),
-		key.NewBinding(
-			key.WithKeys("ctrl+1", "ctrl+2", "ctrl+3", "ctrl+4", "ctrl+5"),
-			key.WithHelp("ctrl+1-5", "switch tab"),
+			key.WithHelp("hjkl", "move"),
 		),
 		key.NewBinding(
 			key.WithKeys("enter"),
 			key.WithHelp("enter", "edit cell"),
 		),
 		key.NewBinding(
-			key.WithKeys("e"),
-			key.WithHelp("e", "open cell in editor"),
-		),
-		key.NewBinding(
 			key.WithKeys("y"),
 			key.WithHelp("y", "copy cell value"),
 		),
-		key.NewBinding(
-			key.WithKeys("v"),
-			key.WithHelp("v", "view cell value"),
-		),
-		key.NewBinding(
-			key.WithKeys("d"),
-			key.WithHelp("dd", "delete row"),
-		),
 	}
 }
+
+// FullHelp returns all bindings for the expanded help view.
+func (k KeyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{
+		{
+			key.NewBinding(
+				key.WithKeys("up", "down", "left", "right", "h", "j", "k", "l"),
+				key.WithHelp("h/j/k/l", "move"),
+			),
+			key.NewBinding(
+				key.WithKeys("home", "g", "end", "G"),
+				key.WithHelp("g/G", "top/bottom"),
+			),
+			key.NewBinding(
+				key.WithKeys("0", "$"),
+				key.WithHelp("0/$", "first/last column"),
+			),
+			key.NewBinding(
+				key.WithKeys("ctrl+n", "ctrl+b"),
+				key.WithHelp("ctrl+n/b", "next/prev page"),
+			),
+			key.NewBinding(
+				key.WithKeys("ctrl+1", "ctrl+2", "ctrl+3", "ctrl+4", "ctrl+5"),
+				key.WithHelp("ctrl+1-5", "switch tab"),
+			),
+		},
+		{
+			key.NewBinding(
+				key.WithKeys("enter"),
+				key.WithHelp("enter", "edit cell"),
+			),
+			key.NewBinding(
+				key.WithKeys("e"),
+				key.WithHelp("e", "open cell in editor"),
+			),
+			key.NewBinding(
+				key.WithKeys("y"),
+				key.WithHelp("y", "copy cell value"),
+			),
+			key.NewBinding(
+				key.WithKeys("v"),
+				key.WithHelp("v", "view cell value"),
+			),
+			key.NewBinding(
+				key.WithKeys("d"),
+				key.WithHelp("dd", "delete row"),
+			),
+		},
+	}
+}
+
+// Keys is the default KeyMap for the table.
+var Keys = KeyMap{}
 
 // View renders a fixed-size table viewport with visible columns and rows.
 func (m Model) View() tea.View {

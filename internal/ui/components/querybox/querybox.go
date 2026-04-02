@@ -134,20 +134,15 @@ func (m Model) Cursor() *tea.Cursor {
 	return m.input.Input().Cursor()
 }
 
-// HelpBindings returns the key bindings for the query box.
-func HelpBindings() []key.Binding {
+// KeyMap defines the key bindings for the query box.
+type KeyMap struct{}
+
+// ShortHelp returns the primary bindings shown in the collapsed shortcuts bar.
+func (k KeyMap) ShortHelp() []key.Binding {
 	return []key.Binding{
 		key.NewBinding(
 			key.WithKeys("ctrl+s"),
 			key.WithHelp("ctrl+s", "run query"),
-		),
-		key.NewBinding(
-			key.WithKeys("ctrl+n"),
-			key.WithHelp("ctrl+n", "expand saved query"),
-		),
-		key.NewBinding(
-			key.WithKeys("ctrl+e"),
-			key.WithHelp("ctrl+e", "open in editor"),
 		),
 		key.NewBinding(
 			key.WithKeys("ctrl+l"),
@@ -155,3 +150,30 @@ func HelpBindings() []key.Binding {
 		),
 	}
 }
+
+// FullHelp returns all bindings for the expanded help view.
+func (k KeyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{
+		{
+			key.NewBinding(
+				key.WithKeys("ctrl+s"),
+				key.WithHelp("ctrl+s", "run query"),
+			),
+			key.NewBinding(
+				key.WithKeys("ctrl+n"),
+				key.WithHelp("ctrl+n", "expand saved query"),
+			),
+			key.NewBinding(
+				key.WithKeys("ctrl+e"),
+				key.WithHelp("ctrl+e", "open in editor"),
+			),
+			key.NewBinding(
+				key.WithKeys("ctrl+l"),
+				key.WithHelp("ctrl+l", "clear query"),
+			),
+		},
+	}
+}
+
+// Keys is the default KeyMap for the query box.
+var Keys = KeyMap{}

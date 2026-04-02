@@ -71,10 +71,26 @@ func (m Model) View() tea.View {
 	return tea.NewView(m.input.View())
 }
 
-// HelpBindings returns the key bindings shown in the help bar while editing.
-func HelpBindings() []key.Binding {
+// KeyMap defines the key bindings for the edit box.
+type KeyMap struct{}
+
+// ShortHelp returns the primary bindings shown in the collapsed shortcuts bar.
+func (k KeyMap) ShortHelp() []key.Binding {
 	return []key.Binding{
 		key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "confirm")),
 		key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "cancel")),
 	}
 }
+
+// FullHelp returns all bindings for the expanded help view.
+func (k KeyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{
+		{
+			key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "confirm")),
+			key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "cancel")),
+		},
+	}
+}
+
+// Keys is the default KeyMap for the edit box.
+var Keys = KeyMap{}

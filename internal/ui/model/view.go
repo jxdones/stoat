@@ -440,23 +440,76 @@ func (m Model) compactView() string {
 	return normalizeCanvas(lipgloss.JoinVertical(lipgloss.Left, msg, m.renderOptions()), m.view.width, m.view.height)
 }
 
-// statusBindings returns the key bindings for the status area.
+// statusBindings returns the key bindings for the collapsed shortcuts bar.
 func (m Model) statusBindings() []key.Binding {
-	paneBindings, globalBindings := m.helpBindings()
-	return append(paneBindings, globalBindings...)
+	km := m.paneKeyMap()
+	// While editing or confirming a delete, suppress global bindings — only
+	// the modal-specific actions are available.
+	if m.inlineEditMode || m.pendingDeleteConfirm {
+		return km.ShortHelp()
+	}
+	return append(km.ShortHelp(), m.shortGlobalBindings()...)
 }
 
-// fullHelpBindings returns the key bindings for the help area.
+// fullHelpBindings returns the key bindings for the expanded help view.
 func (m Model) fullHelpBindings() [][]key.Binding {
-	paneBindings, globalBindings := m.helpBindings()
-	return [][]key.Binding{paneBindings, globalBindings}
+	km := m.paneKeyMap()
+	if m.inlineEditMode || m.pendingDeleteConfirm {
+		return km.FullHelp()
+	}
+	return append(km.FullHelp(), m.fullGlobalBindings())
 }
 
-// helpBindings returns the pane-specific and global key bindings for the
-// currently focused panel, used by both the collapsed shortcuts bar and the
-// expanded help view.
-func (m Model) helpBindings() (pane []key.Binding, global []key.Binding) {
-	globalBindings := []key.Binding{
+// paneKeyMap returns the help.KeyMap for the currently focused pane.
+func (m Model) paneKeyMap() help.KeyMap {
+	if m.inlineEditMode {
+		return editbox.Keys
+	}
+	if m.pendingDeleteConfirm {
+		return deleteConfirmKeyMap{}
+	}
+	switch m.view.focus {
+	case FocusSidebar:
+		return sidebar.Keys
+	case FocusFilterbox:
+		return filterbox.Keys
+	case FocusTable:
+		return table.Keys
+	case FocusQuerybox:
+		return querybox.Keys
+	default:
+		return emptyKeyMap{}
+	}
+}
+
+// shortGlobalBindings returns the abbreviated global bindings for the status bar.
+func (m Model) shortGlobalBindings() []key.Binding {
+	bindings := []key.Binding{
+		key.NewBinding(
+			key.WithKeys("tab"),
+			key.WithHelp("tab", "focus panes"),
+		),
+		key.NewBinding(
+			key.WithKeys("c"),
+			key.WithHelp("c", "open connections"),
+		),
+		key.NewBinding(
+			key.WithKeys("?"),
+			key.WithHelp("?", "help"),
+		),
+	}
+	if m.view.focus == FocusNone {
+		bindings = append(bindings, key.NewBinding(
+			key.WithKeys("q"),
+			key.WithHelp("q", "quit"),
+		))
+	}
+	return bindings
+}
+
+// fullGlobalBindings returns all global bindings for the expanded help view.
+func (m Model) fullGlobalBindings() []key.Binding {
+	bindings := []key.Binding{
 		key.NewBinding(
 			key.WithKeys("?"),
 			key.WithHelp("?", "help"),
@@ -487,37 +540,32 @@ func (m Model) helpBindings() (pane []key.Binding, global []key.Binding) {
 		),
 	}
 	if m.view.focus == FocusNone {
-		globalBindings = append(globalBindings, key.NewBinding(
+		bindings = append(bindings, key.NewBinding(
 			key.WithKeys("q"),
 			key.WithHelp("q", "quit"),
 		))
 	}
+	return bindings
+}
 
-	// While editing, only confirm/cancel are valid — suppress global bindings
-	// so the shortcuts bar doesn't show actions that are unavailable.
-	if m.inlineEditMode {
-		return editbox.HelpBindings(), nil
-	}
-	if m.pendingDeleteConfirm {
-		return []key.Binding{
-			key.NewBinding(key.WithKeys("y"), key.WithHelp("y", "confirm delete")),
-			key.NewBinding(key.WithKeys("n"), key.WithHelp("n/esc", "cancel")),
-		}, nil
-	}
+// emptyKeyMap is used when no pane is focused.
+type emptyKeyMap struct{}
 
-	var paneBindings []key.Binding
-	switch m.view.focus {
-	case FocusSidebar:
-		paneBindings = sidebar.HelpBindings()
-	case FocusFilterbox:
-		paneBindings = filterbox.HelpBindings()
-	case FocusTable:
-		paneBindings = table.HelpBindings()
-	case FocusQuerybox:
-		paneBindings = querybox.HelpBindings()
-	}
+func (emptyKeyMap) ShortHelp() []key.Binding  { return nil }
+func (emptyKeyMap) FullHelp() [][]key.Binding { return nil }
 
-	return paneBindings, globalBindings
+// deleteConfirmKeyMap is used while a row delete is pending confirmation.
+type deleteConfirmKeyMap struct{}
+
+func (deleteConfirmKeyMap) ShortHelp() []key.Binding {
+	return []key.Binding{
+		key.NewBinding(key.WithKeys("y"), key.WithHelp("y", "confirm delete")),
+		key.NewBinding(key.WithKeys("n"), key.WithHelp("n/esc", "cancel")),
+	}
+}
+
+func (deleteConfirmKeyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{deleteConfirmKeyMap{}.ShortHelp()}
 }
 
 // overlayAtCenter composites an overlay string centered over a base canvas.

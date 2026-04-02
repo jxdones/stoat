@@ -109,7 +109,23 @@ func (c *connection) ForeignKeys(ctx context.Context, target database.DatabaseTa
 
 // DefaultDatabase returns the default database name.
 func (c *connection) DefaultDatabase(ctx context.Context) (string, error) {
-	return "public", nil
+	rows, err := c.db.QueryContext(ctx, "SELECT current_schema()")
+	if err != nil {
+		return "", err
+	}
+	defer rows.Close()
+
+	var schemaName string
+	if rows.Next() {
+		err := rows.Scan(&schemaName)
+		if err != nil {
+			return "", err
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return "", err
+	}
+	return schemaName, nil
 }
 
 // UsesSchemaQualification reports that Postgres write queries must prefix table
