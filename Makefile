@@ -7,10 +7,10 @@ PREFIX ?= /usr/local
 
 .PHONY: build test test-integration fmt lint clean release install install-prefix
 
-LDFLAGS := -ldflags "-s -w -X main.version=v$(VERSION)"
+LDFLAGS := -ldflags "-s -w -X github.com/jxdones/stoat/cmd.version=$(VERSION)"
 
 build:
-	$(GO) build $(LDFLAGS) -o bin/$(TARGET) cmd/$(TARGET)/main.go
+	$(GO) build $(LDFLAGS) -o bin/$(TARGET) main.go
 
 test:
 	$(GO) test ./...
@@ -31,12 +31,12 @@ GOOS := $(shell go env GOOS)
 
 release: clean
 	mkdir -p dist
-	GOARCH=amd64 $(GO) build $(LDFLAGS) -o dist/$(TARGET)-$(GOOS)-amd64 ./cmd/$(TARGET)
-	GOARCH=arm64 $(GO) build $(LDFLAGS) -o dist/$(TARGET)-$(GOOS)-arm64 ./cmd/$(TARGET)
+	GOARCH=amd64 $(GO) build $(LDFLAGS) -o dist/$(TARGET)-$(GOOS)-amd64 .
+	GOARCH=arm64 $(GO) build $(LDFLAGS) -o dist/$(TARGET)-$(GOOS)-arm64 .
 
 # Install to $GOBIN. Ensure $GOBIN is in your PATH.
 install:
-	$(GO) install $(LDFLAGS) ./cmd/$(TARGET)
+	$(GO) install $(LDFLAGS) ./main.go
 
 install-prefix: build
 	install -d $(DESTDIR)$(PREFIX)/bin
