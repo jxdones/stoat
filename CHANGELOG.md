@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.5] - 2026-04-05
+
 ### Added
 
 - **`stoat version` subcommand.** `stoat version` now prints the version, complementing the existing `--version` / `-v` flag.
