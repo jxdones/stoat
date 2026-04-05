@@ -54,7 +54,7 @@ func (m Model) delegateToFocused(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.HasConnection() {
 					if db := m.sidebar.EffectiveDB(); db != "" {
 						spinnerCmd := m.statusbar.StartSpinner("Loading tables", statusbar.Info)
-						return m, tea.Batch(spinnerCmd, LoadTablesCmd(m.source, db))
+						return m, tea.Batch(spinnerCmd, LoadTablesCmd(m.source, db, m.connectionSeq))
 					}
 				}
 				return m, nil
@@ -86,7 +86,7 @@ func (m Model) delegateToFocused(msg tea.Msg) (tea.Model, tea.Cmd) {
 				After: "",
 			}
 			spinnerCmd := m.statusbar.StartSpinner("Loading "+tableName, statusbar.Info)
-			return m, tea.Batch(spinnerCmd, LoadTableRowsCmd(m.source, target, page))
+			return m, tea.Batch(spinnerCmd, LoadTableRowsCmd(m.source, target, page, m.connectionSeq))
 		}
 	case FocusQuerybox:
 		next, cmd := m.querybox.Update(msg)

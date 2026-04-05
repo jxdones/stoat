@@ -19,19 +19,22 @@ import (
 // Handling it in Update allows the UI to render "Connecting…" before the
 // blocking provider.FromConfig call begins.
 type ConnectingMsg struct {
-	cfg database.Config
+	cfg           database.Config
+	connectionSeq int
 }
 
 // ConnectedMsg is sent when the async database connection succeeds.
 type ConnectedMsg struct {
-	source   datasource.DataSource
-	name     string
-	readOnly bool
+	source        datasource.DataSource
+	connectionSeq int
+	name          string
+	readOnly      bool
 }
 
 // ConnectionFailedMsg is sent when the async database connection fails.
 type ConnectionFailedMsg struct {
-	err error
+	connectionSeq int
+	err           error
 }
 
 // handleConnectionPickerKey handles key presses while the connection picker modal is active.
@@ -41,6 +44,7 @@ func (m Model) handleConnectionPickerKey(msg tea.KeyPressMsg) (tea.Model, tea.Cm
 
 	switch event {
 	case connectionpicker.EventSelected:
+		m.connectionSeq++
 		selected := m.connectionPicker.Selected()
 		cfg := database.Config{Name: selected.Name, ReadOnly: selected.ReadOnly}
 		cfg.ReadOnly = selected.ReadOnly || m.forceReadOnly
@@ -78,7 +82,7 @@ func (m Model) handleConnectionPickerKey(msg tea.KeyPressMsg) (tea.Model, tea.Cm
 		m.SetPendingConfig(cfg)
 		m.view.focus = FocusSidebar
 		m.activeModal = modalNone
-		return m, func() tea.Msg { return ConnectingMsg{cfg: cfg} }
+		return m, func() tea.Msg { return ConnectingMsg{cfg: cfg, connectionSeq: m.connectionSeq} }
 	case connectionpicker.EventClosed:
 		m.activeModal = modalNone
 	}
@@ -90,8 +94,11 @@ func (m Model) handleConnectionPickerKey(msg tea.KeyPressMsg) (tea.Model, tea.Cm
 // ConnectCmd. The extra message hop gives the UI one render cycle to paint
 // the status before the blocking provider call starts.
 func (m Model) onConnecting(msg ConnectingMsg) (tea.Model, tea.Cmd) {
+	if msg.connectionSeq != m.connectionSeq {
+		return m, nil
+	}
 	spinnerCmd := m.statusbar.StartSpinner("Connecting to "+msg.cfg.Name, statusbar.Info)
-	return m, tea.Batch(spinnerCmd, ConnectCmd(msg.cfg))
+	return m, tea.Batch(spinnerCmd, ConnectCmd(msg.cfg, m.connectionSeq))
 }
 
 // onConnected stores the established data source and begins loading databases.
@@ -99,6 +106,11 @@ func (m Model) onConnecting(msg ConnectingMsg) (tea.Model, tea.Cmd) {
 // sees something as soon as the connection is established, without waiting for
 // the full Databases() round-trip to complete.
 func (m Model) onConnected(msg ConnectedMsg) (tea.Model, tea.Cmd) {
+	// ignore if the connection sequence is not the current one
+	if msg.connectionSeq != m.connectionSeq {
+		return m, nil
+	}
+
 	m.source = msg.source
 	if m.debugOutput != nil {
 		m.source = datasource.WithTiming(m.source, m.debugOutput)
@@ -113,23 +125,31 @@ func (m Model) onConnected(msg ConnectedMsg) (tea.Model, tea.Cmd) {
 	m.statusbar.SetConnectionName(msg.name)
 	m.statusbar.SetReadOnly(m.readOnly)
 
+	// clear the table when the connection is changed
+	m.table.SetColumns(nil)
+	m.table.SetRows(nil)
+	m.unfilteredRows = nil
+
 	defaultDB, err := m.source.DefaultDatabase(context.Background())
 	if err != nil || defaultDB == "" {
 		spinnerCmd := m.statusbar.StartSpinner("Loading databases", statusbar.Info)
-		return m, tea.Batch(spinnerCmd, LoadDatabasesCmd(m.source))
+		return m, tea.Batch(spinnerCmd, LoadDatabasesCmd(m.source, m.connectionSeq))
 	}
 	m.sidebar.SetDatabases([]string{defaultDB})
 	m.sidebar.OpenSelectedDatabase()
 	spinnerCmd := m.statusbar.StartSpinner("Loading tables", statusbar.Info)
 	return m, tea.Batch(
 		spinnerCmd,
-		LoadDatabasesCmd(m.source),
-		LoadTablesCmd(m.source, defaultDB),
+		LoadDatabasesCmd(m.source, m.connectionSeq),
+		LoadTablesCmd(m.source, defaultDB, m.connectionSeq),
 	)
 }
 
 // onConnectionFailed shows a sticky error in the status bar.
 func (m Model) onConnectionFailed(msg ConnectionFailedMsg) (tea.Model, tea.Cmd) {
+	if msg.connectionSeq != m.connectionSeq {
+		return m, nil
+	}
 	m.statusbar.StopSpinner()
 	m.statusbar.SetStatus(" Connection failed: "+redactSecret(msg.err.Error()), statusbar.Error)
 	return m, nil
@@ -137,16 +157,17 @@ func (m Model) onConnectionFailed(msg ConnectionFailedMsg) (tea.Model, tea.Cmd) 
 
 // ConnectCmd establishes a database connection asynchronously using the given
 // config. On success it sends ConnectedMsg; on failure ConnectionFailedMsg.
-func ConnectCmd(cfg database.Config) tea.Cmd {
+func ConnectCmd(cfg database.Config, connectionSeq int) tea.Cmd {
 	return func() tea.Msg {
 		conn, err := provider.FromConfig(cfg)
 		if err != nil {
-			return ConnectionFailedMsg{err: err}
+			return ConnectionFailedMsg{err: err, connectionSeq: connectionSeq}
 		}
 		return ConnectedMsg{
-			source:   datasource.FromConnection(conn),
-			name:     cfg.Name,
-			readOnly: cfg.ReadOnly,
+			source:        datasource.FromConnection(conn),
+			name:          cfg.Name,
+			readOnly:      cfg.ReadOnly,
+			connectionSeq: connectionSeq,
 		}
 	}
 }

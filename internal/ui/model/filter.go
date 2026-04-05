@@ -48,7 +48,7 @@ func (m Model) handleFilterKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
 		target := database.DatabaseTarget{Database: db, Table: tableName}
 		page := database.PageRequest{Limit: DefaultPageLimit, After: ""}
 		spinnerCmd := m.statusbar.StartSpinner("Loading "+tableName, statusbar.Info)
-		return m, tea.Batch(spinnerCmd, LoadTableRowsCmd(m.source, target, page)), true
+		return m, tea.Batch(spinnerCmd, LoadTableRowsCmd(m.source, target, page, m.connectionSeq)), true
 	}
 
 	if strings.Contains(expression, "=") {

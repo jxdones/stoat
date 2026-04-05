@@ -22,42 +22,48 @@ const DefaultPageLimit = 200
 
 // DatabasesLoadedMsg is sent when a list of databases is loaded.
 type DatabasesLoadedMsg struct {
-	Databases []string
-	Err       error
+	Databases     []string
+	ConnectionSeq int
+	Err           error
 }
 
 // TablesLoadedMsg is sent when a list of tables is loaded.
 type TablesLoadedMsg struct {
-	Database string
-	Tables   []string
-	Err      error
+	Database      string
+	Tables        []string
+	ConnectionSeq int
+	Err           error
 }
 
 // RowsLoadedMsg is sent when a page of rows is loaded.
 type RowsLoadedMsg struct {
-	Result database.PageResult
-	Err    error
+	Result        database.PageResult
+	ConnectionSeq int
+	Err           error
 }
 
 // TableConstraintsLoadedMsg is sent when constraints for a table have been loaded.
 type TableConstraintsLoadedMsg struct {
-	Target      database.DatabaseTarget
-	Constraints []database.Constraint
-	Err         error
+	Target        database.DatabaseTarget
+	Constraints   []database.Constraint
+	ConnectionSeq int
+	Err           error
 }
 
 // IndexesLoadedMsg is sent when indexes for a table have been loaded.
 type IndexesLoadedMsg struct {
-	Target  database.DatabaseTarget
-	Indexes []database.Index
-	Err     error
+	Target        database.DatabaseTarget
+	Indexes       []database.Index
+	ConnectionSeq int
+	Err           error
 }
 
 // ForeignKeysLoadedMsg is sent when foreign keys for a table have been loaded.
 type ForeignKeysLoadedMsg struct {
-	Target      database.DatabaseTarget
-	ForeignKeys []database.ForeignKey
-	Err         error
+	Target        database.DatabaseTarget
+	ForeignKeys   []database.ForeignKey
+	ConnectionSeq int
+	Err           error
 }
 
 // CopyDoneMsg is sent when the copy operation is done.
@@ -67,6 +73,10 @@ type CopyDoneMsg struct {
 
 // onDatabasesLoaded handles the DatabasesLoadedMsg and updates the sidebar.
 func (m Model) onDatabasesLoaded(msg DatabasesLoadedMsg) (tea.Model, tea.Cmd) {
+	if msg.ConnectionSeq != m.connectionSeq {
+		return m, nil
+	}
+
 	m.statusbar.StopSpinner()
 	if msg.Err != nil {
 		cmd := m.statusbar.SetStatusWithTTL(" Databases: "+msg.Err.Error(), statusbar.Error, 4*time.Second)
@@ -85,6 +95,10 @@ func (m Model) onDatabasesLoaded(msg DatabasesLoadedMsg) (tea.Model, tea.Cmd) {
 
 // onTablesLoaded handles the TablesLoadedMsg and updates the sidebar.
 func (m Model) onTablesLoaded(msg TablesLoadedMsg) (tea.Model, tea.Cmd) {
+	if msg.ConnectionSeq != m.connectionSeq {
+		return m, nil
+	}
+
 	m.statusbar.StopSpinner()
 	if msg.Err != nil {
 		cmd := m.statusbar.SetStatusWithTTL(" Tables: "+msg.Err.Error(), statusbar.Error, 4*time.Second)
@@ -101,6 +115,10 @@ func (m Model) onTablesLoaded(msg TablesLoadedMsg) (tea.Model, tea.Cmd) {
 
 // onRowsLoaded handles the RowsLoadedMsg and updates the table.
 func (m Model) onRowsLoaded(msg RowsLoadedMsg) (tea.Model, tea.Cmd) {
+	if msg.ConnectionSeq != m.connectionSeq {
+		return m, nil
+	}
+
 	m.statusbar.StopSpinner()
 	if msg.Err != nil {
 		cmd := m.statusbar.SetStatusWithTTL(" Rows: "+msg.Err.Error(), statusbar.Error, 4*time.Second)
@@ -125,14 +143,18 @@ func (m Model) onRowsLoaded(msg RowsLoadedMsg) (tea.Model, tea.Cmd) {
 	m.applyViewState()
 	target := database.DatabaseTarget{Database: m.sidebar.EffectiveDB(), Table: m.sidebar.SelectedTable()}
 	return m, tea.Batch(
-		LoadTableConstraintsCmd(m.source, target),
-		LoadTableIndexesCmd(m.source, target),
-		LoadTableForeignKeysCmd(m.source, target),
+		LoadTableConstraintsCmd(m.source, target, m.connectionSeq),
+		LoadTableIndexesCmd(m.source, target, m.connectionSeq),
+		LoadTableForeignKeysCmd(m.source, target, m.connectionSeq),
 	)
 }
 
 // onTableConstraintsLoaded stores primary key columns for the table so UPDATE-from-cell can build a safe WHERE.
 func (m Model) onTableConstraintsLoaded(msg TableConstraintsLoadedMsg) (tea.Model, tea.Cmd) {
+	if msg.ConnectionSeq != m.connectionSeq {
+		return m, nil
+	}
+
 	if msg.Err != nil {
 		return m, nil
 	}
@@ -155,6 +177,10 @@ func (m Model) onTableConstraintsLoaded(msg TableConstraintsLoadedMsg) (tea.Mode
 
 // onIndexesLoaded handles the IndexesLoadedMsg and updates the table schema.
 func (m Model) onIndexesLoaded(msg IndexesLoadedMsg) (tea.Model, tea.Cmd) {
+	if msg.ConnectionSeq != m.connectionSeq {
+		return m, nil
+	}
+
 	if msg.Err != nil {
 		return m, nil
 	}
@@ -172,6 +198,10 @@ func (m Model) onIndexesLoaded(msg IndexesLoadedMsg) (tea.Model, tea.Cmd) {
 
 // onForeignKeysLoaded handles the ForeignKeysLoadedMsg and updates the table schema.
 func (m Model) onForeignKeysLoaded(msg ForeignKeysLoadedMsg) (tea.Model, tea.Cmd) {
+	if msg.ConnectionSeq != m.connectionSeq {
+		return m, nil
+	}
+
 	if msg.Err != nil {
 		return m, nil
 	}
@@ -195,68 +225,68 @@ func (m Model) reload() (tea.Model, tea.Cmd) {
 	target := database.DatabaseTarget{Database: db, Table: tableName}
 	page := database.PageRequest{Limit: DefaultPageLimit, After: ""}
 	spinnerCmd := m.statusbar.StartSpinner("Loading "+tableName, statusbar.Info)
-	return m, tea.Batch(spinnerCmd, LoadTableRowsCmd(m.source, target, page))
+	return m, tea.Batch(spinnerCmd, LoadTableRowsCmd(m.source, target, page, m.connectionSeq))
 }
 
 // LoadDatabasesCmd returns a command that loads the list of databases from the
 // data source. On completion it sends a DatabasesLoadedMsg.
-func LoadDatabasesCmd(source datasource.DataSource) tea.Cmd {
+func LoadDatabasesCmd(source datasource.DataSource, seq int) tea.Cmd {
 	return func() tea.Msg {
 		if source == nil {
 			return DatabasesLoadedMsg{Err: database.ErrNoConnection}
 		}
 		dbs, err := source.Databases(context.Background())
-		return DatabasesLoadedMsg{Databases: dbs, Err: err}
+		return DatabasesLoadedMsg{Databases: dbs, Err: err, ConnectionSeq: seq}
 	}
 }
 
 // LoadTablesCmd returns a command that loads the list of tables for the given
 // database. On completion it sends a TablesLoadedMsg.
-func LoadTablesCmd(source datasource.DataSource, dbName string) tea.Cmd {
+func LoadTablesCmd(source datasource.DataSource, dbName string, seq int) tea.Cmd {
 	return func() tea.Msg {
 		if source == nil {
 			return TablesLoadedMsg{Database: dbName, Err: database.ErrNoConnection}
 		}
 		tables, err := source.Tables(context.Background(), dbName)
-		return TablesLoadedMsg{Database: dbName, Tables: tables, Err: err}
+		return TablesLoadedMsg{Database: dbName, Tables: tables, Err: err, ConnectionSeq: seq}
 	}
 }
 
 // LoadTableConstraintsCmd returns a command that loads constraints for the given target.
-func LoadTableConstraintsCmd(source datasource.DataSource, target database.DatabaseTarget) tea.Cmd {
+func LoadTableConstraintsCmd(source datasource.DataSource, target database.DatabaseTarget, seq int) tea.Cmd {
 	return func() tea.Msg {
 		if source == nil {
 			return TableConstraintsLoadedMsg{Err: database.ErrNoConnection}
 		}
 		constraints, err := source.Constraints(context.Background(), target)
-		return TableConstraintsLoadedMsg{Target: target, Constraints: constraints, Err: err}
+		return TableConstraintsLoadedMsg{Target: target, Constraints: constraints, Err: err, ConnectionSeq: seq}
 	}
 }
 
 // LoadTableIndexesCmd returns a command that loads indexes for the given target.
-func LoadTableIndexesCmd(source datasource.DataSource, target database.DatabaseTarget) tea.Cmd {
+func LoadTableIndexesCmd(source datasource.DataSource, target database.DatabaseTarget, seq int) tea.Cmd {
 	return func() tea.Msg {
 		if source == nil {
 			return IndexesLoadedMsg{Err: database.ErrNoConnection}
 		}
 		indexes, err := source.Indexes(context.Background(), target)
-		return IndexesLoadedMsg{Target: target, Indexes: indexes, Err: err}
+		return IndexesLoadedMsg{Target: target, Indexes: indexes, Err: err, ConnectionSeq: seq}
 	}
 }
 
 // LoadTableForeignKeysCmd returns a command that loads foreign keys for the given target.
-func LoadTableForeignKeysCmd(source datasource.DataSource, target database.DatabaseTarget) tea.Cmd {
+func LoadTableForeignKeysCmd(source datasource.DataSource, target database.DatabaseTarget, seq int) tea.Cmd {
 	return func() tea.Msg {
 		if source == nil {
 			return ForeignKeysLoadedMsg{Err: database.ErrNoConnection}
 		}
 		foreignKeys, err := source.ForeignKeys(context.Background(), target)
-		return ForeignKeysLoadedMsg{Target: target, ForeignKeys: foreignKeys, Err: err}
+		return ForeignKeysLoadedMsg{Target: target, ForeignKeys: foreignKeys, Err: err, ConnectionSeq: seq}
 	}
 }
 
 // LoadTableRowsCmd returns a command that loads one page of rows for the given target.
-func LoadTableRowsCmd(source datasource.DataSource, target database.DatabaseTarget, page database.PageRequest) tea.Cmd {
+func LoadTableRowsCmd(source datasource.DataSource, target database.DatabaseTarget, page database.PageRequest, seq int) tea.Cmd {
 	return func() tea.Msg {
 		if source == nil {
 			return RowsLoadedMsg{Err: database.ErrNoConnection}
@@ -265,7 +295,7 @@ func LoadTableRowsCmd(source datasource.DataSource, target database.DatabaseTarg
 			page.Limit = DefaultPageLimit
 		}
 		result, err := source.Rows(context.Background(), target, page)
-		return RowsLoadedMsg{Result: result, Err: err}
+		return RowsLoadedMsg{Result: result, Err: err, ConnectionSeq: seq}
 	}
 }
 

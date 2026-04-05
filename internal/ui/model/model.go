@@ -71,6 +71,10 @@ type Model struct {
 	forceReadOnly bool // set by --read-only CLI flag; forces read-only regardless of connection config
 	readOnly      bool // true when the active connection is read-only (either flag or config)
 
+	// connectionSeq is used to validate the current active connection
+	// when the connection is changed, the sequence is incremented
+	connectionSeq int
+
 	debugOutput io.Writer // for timing debug output
 }
 
@@ -117,11 +121,11 @@ func New() Model {
 func (m Model) Init() tea.Cmd {
 	if m.pendingConfig != nil {
 		cfg := *m.pendingConfig
-		return func() tea.Msg { return ConnectingMsg{cfg: cfg} }
+		return func() tea.Msg { return ConnectingMsg{cfg: cfg, connectionSeq: m.connectionSeq} }
 	}
 	if m.HasConnection() {
 		m.sidebar.SetDatabaseLabel(m.source.DatabaseLabel())
-		return LoadDatabasesCmd(m.source)
+		return LoadDatabasesCmd(m.source, m.connectionSeq)
 	}
 	return nil
 }

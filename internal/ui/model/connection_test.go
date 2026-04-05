@@ -4,6 +4,10 @@ import (
 	"errors"
 	"strings"
 	"testing"
+
+	tea "charm.land/bubbletea/v2"
+
+	"github.com/jxdones/stoat/internal/database"
 )
 
 func TestHandleConnectionFailed(t *testing.T) {
@@ -26,7 +30,7 @@ func TestHandleConnectionFailed(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := New()
-			next, cmd := m.onConnectionFailed(ConnectionFailedMsg{err: tt.err})
+			next, cmd := m.onConnectionFailed(ConnectionFailedMsg{connectionSeq: m.connectionSeq, err: tt.err})
 			got := next.(Model)
 			if cmd != nil {
 				t.Errorf("onConnectionFailed() cmd = %v, want nil", cmd)
@@ -38,34 +42,140 @@ func TestHandleConnectionFailed(t *testing.T) {
 	}
 }
 
-func TestHandleConnected(t *testing.T) {
+func TestOnConnected(t *testing.T) {
 	tests := []struct {
-		name           string
-		wantSourceSet  bool
-		wantStatusText string
-		wantCmd        bool
+		name                string
+		connectionSeq       int
+		preloadTable        bool
+		connectionName      string
+		wantSourceSet       bool
+		wantStatusSubstring string
+		wantCmd             bool
+		wantTableCleared    bool
 	}{
 		{
-			name:           "sets_source_and_triggers_parallel_load",
-			wantSourceSet:  true,
-			wantStatusText: "Loading tables",
-			wantCmd:        true,
+			name:                "sets_source_and_triggers_parallel_load",
+			connectionSeq:       0,
+			wantSourceSet:       true,
+			wantStatusSubstring: "Loading tables",
+			wantCmd:             true,
+		},
+		{
+			name:                "clears_prior_table_data",
+			connectionSeq:       1,
+			preloadTable:        true,
+			connectionName:      "local",
+			wantSourceSet:       true,
+			wantStatusSubstring: "Loading tables",
+			wantCmd:             true,
+			wantTableCleared:    true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := New()
-			next, cmd := m.onConnected(ConnectedMsg{source: mockDataSource{}})
+			m.connectionSeq = tt.connectionSeq
+			if tt.preloadTable {
+				m.table.SetColumns(dbColumnsToTable([]database.Column{
+					{Key: "name", Title: "name", Type: "text", MinWidth: 4},
+				}))
+				rows := dbRowsToTable([]database.Row{{"name": "Alice"}})
+				m.unfilteredRows = rows
+				m.table.SetRows(rows)
+			}
+
+			next, cmd := m.onConnected(ConnectedMsg{
+				source:        mockDataSource{},
+				connectionSeq: tt.connectionSeq,
+				name:          tt.connectionName,
+				readOnly:      false,
+			})
 			got := next.(Model)
 			if tt.wantSourceSet && !got.HasConnection() {
 				t.Error("onConnected() source not set on model")
 			}
-			if !strings.Contains(statusText(got), tt.wantStatusText) {
-				t.Errorf("status %q does not contain %q", statusText(got), tt.wantStatusText)
+			if !strings.Contains(statusText(got), tt.wantStatusSubstring) {
+				t.Errorf("status %q does not contain %q", statusText(got), tt.wantStatusSubstring)
 			}
 			if tt.wantCmd && cmd == nil {
-				t.Error("onConnected() cmd = nil, want LoadDatabasesCmd")
+				t.Error("onConnected() cmd = nil, want follow-up load command")
 			}
+			if tt.wantTableCleared {
+				if got.table.ColumnCount() != 0 || got.table.RowCount() != 0 {
+					t.Errorf("onConnected() table should be cleared, got %d columns and %d rows",
+						got.table.ColumnCount(), got.table.RowCount())
+				}
+				if got.unfilteredRows != nil {
+					t.Errorf("onConnected() unfilteredRows = %#v, want nil", got.unfilteredRows)
+				}
+			}
+		})
+	}
+}
+
+func TestStaleConnectionSeq_ignoredByConnectionHandlers(t *testing.T) {
+	tests := []struct {
+		name   string
+		act    func(m Model) (tea.Model, tea.Cmd)
+		assert func(t *testing.T, got Model, cmd tea.Cmd)
+	}{
+		{
+			name: "connection_failed",
+			act: func(m Model) (tea.Model, tea.Cmd) {
+				return m.onConnectionFailed(ConnectionFailedMsg{
+					connectionSeq: 1,
+					err:           errors.New("stale_failure_marker"),
+				})
+			},
+			assert: func(t *testing.T, got Model, cmd tea.Cmd) {
+				if cmd != nil {
+					t.Errorf("cmd = %v, want nil", cmd)
+				}
+				if strings.Contains(statusText(got), "stale_failure_marker") {
+					t.Errorf("stale ConnectionFailedMsg should not update status, got %q", statusText(got))
+				}
+			},
+		},
+		{
+			name: "connected",
+			act: func(m Model) (tea.Model, tea.Cmd) {
+				return m.onConnected(ConnectedMsg{
+					source:        mockDataSource{},
+					connectionSeq: 1,
+					name:          "x",
+					readOnly:      false,
+				})
+			},
+			assert: func(t *testing.T, got Model, cmd tea.Cmd) {
+				if cmd != nil {
+					t.Errorf("cmd = %v, want nil", cmd)
+				}
+				if got.HasConnection() {
+					t.Error("stale ConnectedMsg should not set source")
+				}
+			},
+		},
+		{
+			name: "connecting",
+			act: func(m Model) (tea.Model, tea.Cmd) {
+				return m.onConnecting(ConnectingMsg{
+					cfg:           database.Config{Name: "db"},
+					connectionSeq: 1,
+				})
+			},
+			assert: func(t *testing.T, got Model, cmd tea.Cmd) {
+				if cmd != nil {
+					t.Errorf("cmd = %v, want nil", cmd)
+				}
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := New()
+			m.connectionSeq = 2
+			next, cmd := tt.act(m)
+			tt.assert(t, next.(Model), cmd)
 		})
 	}
 }

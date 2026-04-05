@@ -104,7 +104,7 @@ func (m Model) onQueryExecuted(msg QueryExecutedMsg) (tea.Model, tea.Cmd) {
 			target := database.DatabaseTarget{Database: db, Table: tableName}
 			page := database.PageRequest{Limit: DefaultPageLimit, After: m.paging.requestAfter}
 			m.applyViewState()
-			return m, tea.Batch(statusCmd, LoadTableRowsCmd(m.source, target, page))
+			return m, tea.Batch(statusCmd, LoadTableRowsCmd(m.source, target, page, m.connectionSeq))
 		}
 	}
 	m.applyViewState()

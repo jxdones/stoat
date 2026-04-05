@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`stoat version` subcommand.** `stoat version` now prints the version, complementing the existing `--version` / `-v` flag.
 
+### Fixed
+
+- **Stale data when switching connections.** Switching to a new connection while data was still loading could cause tables and rows from the previous connection to appear in the new session. A connection sequence counter now ensures all in-flight results from prior connections are silently discarded. The table view is also cleared immediately when a new connection is established.
+
 ## [0.14.4] - 2026-04-02
 
 ### Changed

@@ -82,7 +82,7 @@ func (m Model) handlePagingKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
 		return m, tea.Batch(spinnerCmd, LoadTableRowsCmd(m.source, target, database.PageRequest{
 			Limit: DefaultPageLimit,
 			After: m.paging.currentAfter,
-		})), true
+		}, m.connectionSeq)), true
 	}
 	if msg.String() == "ctrl+b" && len(m.paging.afterStack) > 1 {
 		prevCursor := m.paging.afterStack[len(m.paging.afterStack)-2]
@@ -92,7 +92,7 @@ func (m Model) handlePagingKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
 		return m, tea.Batch(spinnerCmd, LoadTableRowsCmd(m.source, target, database.PageRequest{
 			Limit: DefaultPageLimit,
 			After: prevCursor,
-		})), true
+		}, m.connectionSeq)), true
 	}
 	return m, nil, false
 }
