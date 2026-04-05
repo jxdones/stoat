@@ -212,7 +212,7 @@ func (m *Model) applyViewState() {
 	}
 
 	m.editbox.SetWidth(common.BoxInnerWidth(frame.columns.mainPane))
-	if m.inlineEditMode {
+	if m.mode == modeInsert {
 		m.editbox.Focus()
 	} else {
 		m.editbox.Blur()
@@ -230,6 +230,9 @@ func (m *Model) applyViewState() {
 	cdHeight := min(clampRange(m.view.height/2, cellDetailMinHeight, cellDetailMaxHeight), m.view.height-cellDetailScreenMargin)
 	cdHeight = m.cellDetail.PreferredHeight(cdHeight)
 	m.cellDetail.SetSize(cdWidth, cdHeight)
+
+	label, color := m.modeStyle()
+	m.statusbar.SetMode(label, color)
 }
 
 // effectiveQueryRows returns the query box height in rows for the current model state.

@@ -245,10 +245,10 @@ func (m Model) renderTable(width, height int, table table.Model) string {
 
 // renderDetail renders the detail area of the UI layout.
 func (m Model) renderDetail(width int) string {
-	if m.inlineEditMode {
+	if m.mode == modeInsert {
 		return m.renderDetailEdit(width)
 	}
-	if m.pendingDeleteConfirm {
+	if m.mode == modeDelete {
 		return m.renderDetailDelete(width)
 	}
 
@@ -445,7 +445,7 @@ func (m Model) statusBindings() []key.Binding {
 	km := m.paneKeyMap()
 	// While editing or confirming a delete, suppress global bindings — only
 	// the modal-specific actions are available.
-	if m.inlineEditMode || m.pendingDeleteConfirm {
+	if m.mode == modeInsert || m.mode == modeDelete {
 		return km.ShortHelp()
 	}
 	return append(km.ShortHelp(), m.shortGlobalBindings()...)
@@ -454,7 +454,7 @@ func (m Model) statusBindings() []key.Binding {
 // fullHelpBindings returns the key bindings for the expanded help view.
 func (m Model) fullHelpBindings() [][]key.Binding {
 	km := m.paneKeyMap()
-	if m.inlineEditMode || m.pendingDeleteConfirm {
+	if m.mode == modeInsert || m.mode == modeDelete {
 		return km.FullHelp()
 	}
 	return append(km.FullHelp(), m.fullGlobalBindings())
@@ -462,10 +462,10 @@ func (m Model) fullHelpBindings() [][]key.Binding {
 
 // paneKeyMap returns the help.KeyMap for the currently focused pane.
 func (m Model) paneKeyMap() help.KeyMap {
-	if m.inlineEditMode {
+	if m.mode == modeInsert {
 		return editbox.Keys
 	}
-	if m.pendingDeleteConfirm {
+	if m.mode == modeDelete {
 		return deleteConfirmKeyMap{}
 	}
 	switch m.view.focus {

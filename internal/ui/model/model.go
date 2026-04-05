@@ -28,13 +28,12 @@ var dsnRedactRegex = regexp.MustCompile(`://([^:@]+):(.+)@`)
 // Model is the root Bubble Tea model; it composes the sidebar, table, status bar, and other components.
 type Model struct {
 	// states
-	view                 screenState
-	activeModal          activeModal
-	viewingQueryResult   bool
-	helpExpanded         bool
-	inlineEditMode       bool
-	pendingTableReload   bool
-	pendingDeleteConfirm bool
+	view               screenState
+	activeModal        activeModal
+	mode               mode
+	viewingQueryResult bool
+	helpExpanded       bool
+	pendingTableReload bool
 
 	// data
 	tableSchema tableSchema
@@ -80,7 +79,7 @@ type Model struct {
 
 // detailRows returns the number of rows the detail section should occupy.
 func (m Model) detailRows() int {
-	if m.inlineEditMode || m.pendingDeleteConfirm {
+	if m.mode == modeInsert || m.mode == modeDelete {
 		return mainDetailRowsEdit
 	}
 	return mainDetailRowsNormal
@@ -112,6 +111,7 @@ func New() Model {
 		},
 		savedQueries: []SavedQuery{},
 	}
+
 	m.applyViewState()
 	return m
 }

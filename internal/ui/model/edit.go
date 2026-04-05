@@ -47,7 +47,7 @@ func (m Model) handleEditKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
 	if !ok || db == "" || tableName == "" {
 		return m, nil, false
 	}
-	m.inlineEditMode = true
+	m.mode = modeInsert
 	if value == table.NullValue {
 		value = ""
 	}
@@ -81,7 +81,7 @@ func (m Model) handleDeleteKey(msg tea.KeyPressMsg, prevKey string) (tea.Model, 
 	if !ok {
 		return m, nil, false
 	}
-	m.pendingDeleteConfirm = true
+	m.mode = modeDelete
 	m.applyViewState()
 	return m, nil, true
 }
@@ -109,11 +109,11 @@ func (m Model) handleCellEditorKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, boo
 // confirmInlineEdit handles the enter key when in inline edit mode.
 // It runs the update query and reloads the table if the value changed.
 func (m Model) confirmInlineEdit(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
-	if !m.inlineEditMode || msg.String() != "enter" {
+	if m.mode != modeInsert || msg.String() != "enter" {
 		return m, nil, false
 	}
 	newValue := m.editbox.Value()
-	m.inlineEditMode = false
+	m.mode = modeNormal
 	m.applyViewState()
 
 	db := m.sidebar.EffectiveDB()
@@ -145,7 +145,7 @@ func (m Model) confirmInlineEdit(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool)
 // Only esc (cancel), enter (confirm), and raw text input are processed.
 func (m Model) handleEditModeKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	if msg.String() == "esc" {
-		m.inlineEditMode = false
+		m.mode = modeNormal
 		m.applyViewState()
 		return m, nil
 	}
@@ -157,10 +157,10 @@ func (m Model) handleEditModeKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 
 // confirmDelete handles the y key press when a delete confirmation is pending.
 func (m Model) confirmDelete(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
-	if !m.pendingDeleteConfirm || msg.String() != "y" {
+	if m.mode != modeDelete || msg.String() != "y" {
 		return m, nil, false
 	}
-	m.pendingDeleteConfirm = false
+	m.mode = modeNormal
 	m.applyViewState()
 
 	db := m.sidebar.EffectiveDB()
@@ -186,13 +186,13 @@ func (m Model) confirmDelete(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
 
 // cancelDelete handles the n or esc key press when a delete confirmation is pending.
 func (m Model) cancelDelete(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
-	if !m.pendingDeleteConfirm {
+	if m.mode != modeDelete {
 		return m, nil, false
 	}
 	if msg.String() != "n" && msg.String() != "esc" {
 		return m, nil, false
 	}
-	m.pendingDeleteConfirm = false
+	m.mode = modeNormal
 	m.applyViewState()
 	return m, nil, true
 }

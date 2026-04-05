@@ -98,7 +98,7 @@ func (m Model) delegateToFocused(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.filterbox = next
 		return m, cmd
 	case FocusTable:
-		if m.inlineEditMode {
+		if m.mode == modeInsert {
 			next, cmd := m.editbox.Update(msg)
 			m.editbox = next
 			return m, cmd
@@ -122,7 +122,7 @@ func (m Model) delegateToFocused(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // delegatePaste forwards a paste event to the focused panel.
 func (m Model) delegatePaste(msg tea.PasteMsg) (tea.Model, tea.Cmd) {
-	if m.inlineEditMode {
+	if m.mode == modeInsert {
 		next, cmd := m.editbox.Update(msg)
 		m.editbox = next
 		return m, cmd

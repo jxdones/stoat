@@ -69,13 +69,13 @@ func (m Model) onWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 // handleKeyPress routes key presses to the active mode, modal, global shortcuts,
 // or feature-specific key handlers.
 func (m Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	if m.inlineEditMode {
+	if m.mode == modeInsert {
 		return m.handleEditModeKey(msg)
 	}
 	prevKey := m.lastKey
 	m.lastKey = ""
 
-	if m.pendingDeleteConfirm {
+	if m.mode == modeDelete {
 		if next, cmd, handled := m.confirmDelete(msg); handled {
 			return next, cmd
 		}

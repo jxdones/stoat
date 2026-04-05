@@ -232,6 +232,25 @@ func TestViewRightZone(t *testing.T) {
 			setup:      func(m *Model) {},
 			wantAbsent: []string{"[RO]"},
 		},
+		{
+			name:         "mode_label_shown",
+			setup:        func(m *Model) { m.SetMode("INSERT", nil) },
+			wantContains: []string{"INSERT"},
+		},
+		{
+			name: "mode_label_shown_with_connection_and_ro",
+			setup: func(m *Model) {
+				m.SetMode("VISUAL", nil)
+				m.SetConnectionName("mydb")
+				m.SetReadOnly(true)
+			},
+			wantContains: []string{"VISUAL", "mydb", "[RO]"},
+		},
+		{
+			name:         "mode_label_shown_without_connection_or_ro",
+			setup:        func(m *Model) { m.SetMode("NORMAL", nil) },
+			wantContains: []string{"NORMAL"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

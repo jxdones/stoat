@@ -1,6 +1,7 @@
 package statusbar
 
 import (
+	"image/color"
 	"strings"
 	"time"
 
@@ -43,6 +44,9 @@ type Model struct {
 
 	connectionName string
 	readOnly       bool
+
+	modeLabel string
+	modeColor color.Color
 }
 
 // New returns a new status bar model with default " Ready" info message.
@@ -113,11 +117,14 @@ func (m *Model) SetReadOnly(readOnly bool) {
 // renderRight builds the right-zone string: connection name and/or [RO] badge.
 // Returns empty string when there is nothing to show.
 func (m Model) renderRight() string {
-	if m.connectionName == "" && !m.readOnly {
+	if m.modeLabel == "" && m.connectionName == "" && !m.readOnly {
 		return ""
 	}
 
 	var parts []string
+	if m.modeLabel != "" {
+		parts = append(parts, lipgloss.NewStyle().Foreground(m.modeColor).Bold(true).Render(m.modeLabel))
+	}
 	if m.connectionName != "" {
 		name := ansi.Truncate(m.connectionName, maxConnectionNameWidth, "…")
 		parts = append(parts, lipgloss.NewStyle().Foreground(theme.Current.TextPrimary).Bold(true).Render(name))
@@ -166,4 +173,10 @@ func (m *Model) Update(msg tea.Msg) tea.Cmd {
 	var cmd tea.Cmd
 	m.spinner, cmd = m.spinner.Update(msg)
 	return cmd
+}
+
+// SetMode sets the mode label and color.
+func (m *Model) SetMode(label string, color color.Color) {
+	m.modeLabel = label
+	m.modeColor = color
 }

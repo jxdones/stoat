@@ -13,13 +13,13 @@ func TestHandleEditKey(t *testing.T) {
 		name          string
 		setup         func(*Model)
 		key           string
-		wantEditMode  bool
+		wantMode      mode
 		wantEditValue string
 	}{
 		{
 			name:          "enter_with_table_focused_enters_edit_mode",
 			key:           "enter",
-			wantEditMode:  true,
+			wantMode:      modeInsert,
 			wantEditValue: "Alice",
 		},
 		{
@@ -27,29 +27,29 @@ func TestHandleEditKey(t *testing.T) {
 			setup: func(m *Model) {
 				m.viewingQueryResult = true
 			},
-			key:          "enter",
-			wantEditMode: false,
+			key:      "enter",
+			wantMode: modeNormal,
 		},
 		{
 			name: "enter_blocked_when_no_table_selected",
 			setup: func(m *Model) {
 				m.sidebar.SetDatabases([]string{})
 			},
-			key:          "enter",
-			wantEditMode: false,
+			key:      "enter",
+			wantMode: modeNormal,
 		},
 		{
 			name: "enter_blocked_when_tab_is_not_records",
 			setup: func(m *Model) {
 				m.tabs.SetActive(1) // Columns
 			},
-			key:          "enter",
-			wantEditMode: false,
+			key:      "enter",
+			wantMode: modeNormal,
 		},
 		{
-			name:         "non_enter_key_does_not_enter_edit_mode",
-			key:          "j",
-			wantEditMode: false,
+			name:     "non_enter_key_does_not_enter_edit_mode",
+			key:      "j",
+			wantMode: modeNormal,
 		},
 	}
 	for _, tt := range tests {
@@ -60,8 +60,8 @@ func TestHandleEditKey(t *testing.T) {
 			}
 			got, _, _ := m.handleEditKey(keyMsg(tt.key))
 			next := got.(Model)
-			if next.inlineEditMode != tt.wantEditMode {
-				t.Errorf("inlineEditMode = %v, want %v", next.inlineEditMode, tt.wantEditMode)
+			if next.mode != tt.wantMode {
+				t.Errorf("mode = %v, want %v", next.mode, tt.wantMode)
 			}
 			if tt.wantEditValue != "" && next.editbox.Value() != tt.wantEditValue {
 				t.Errorf("editbox value = %q, want %q", next.editbox.Value(), tt.wantEditValue)
@@ -75,37 +75,37 @@ func TestConfirmInlineEdit(t *testing.T) {
 		name              string
 		setup             func(*Model)
 		wantHandled       bool
-		wantEditMode      bool
+		wantMode          mode
 		wantCmd           bool
 		wantPendingReload bool
 	}{
 		{
 			name: "confirm_with_changed_value_fires_query",
 			setup: func(m *Model) {
-				m.inlineEditMode = true
+				m.mode = modeInsert
 				m.editbox.SetValue("Bob")
 			},
 			wantHandled:       true,
-			wantEditMode:      false,
+			wantMode:          modeNormal,
 			wantCmd:           true,
 			wantPendingReload: true,
 		},
 		{
 			name: "confirm_with_unchanged_value_skips_query",
 			setup: func(m *Model) {
-				m.inlineEditMode = true
+				m.mode = modeInsert
 				m.editbox.SetValue("Alice")
 			},
 			wantHandled:       true,
-			wantEditMode:      false,
+			wantMode:          modeNormal,
 			wantCmd:           false,
 			wantPendingReload: false,
 		},
 		{
-			name:         "not_in_edit_mode_returns_unhandled",
-			setup:        func(m *Model) { m.inlineEditMode = false },
-			wantHandled:  false,
-			wantEditMode: false,
+			name:        "not_in_edit_mode_returns_unhandled",
+			setup:       func(m *Model) { m.mode = modeNormal },
+			wantHandled: false,
+			wantMode:    modeNormal,
 		},
 	}
 	for _, tt := range tests {
@@ -120,8 +120,8 @@ func TestConfirmInlineEdit(t *testing.T) {
 			if handled != tt.wantHandled {
 				t.Errorf("handled = %v, want %v", handled, tt.wantHandled)
 			}
-			if next.inlineEditMode != tt.wantEditMode {
-				t.Errorf("inlineEditMode = %v, want %v", next.inlineEditMode, tt.wantEditMode)
+			if next.mode != tt.wantMode {
+				t.Errorf("mode = %v, want %v", next.mode, tt.wantMode)
 			}
 			if tt.wantCmd && cmd == nil {
 				t.Error("expected non-nil cmd, got nil")
@@ -138,32 +138,32 @@ func TestConfirmInlineEdit(t *testing.T) {
 
 func TestEscCancelsEditMode(t *testing.T) {
 	tests := []struct {
-		name           string
-		inlineEditMode bool
-		wantEditMode   bool
-		wantFocus      FocusedPanel
+		name        string
+		initialMode mode
+		wantMode    mode
+		wantFocus   FocusedPanel
 	}{
 		{
-			name:           "esc_in_edit_mode_cancels_and_keeps_table_focus",
-			inlineEditMode: true,
-			wantEditMode:   false,
-			wantFocus:      FocusTable,
+			name:        "esc_in_edit_mode_cancels_and_keeps_table_focus",
+			initialMode: modeInsert,
+			wantMode:    modeNormal,
+			wantFocus:   FocusTable,
 		},
 		{
-			name:           "esc_in_normal_mode_clears_focus",
-			inlineEditMode: false,
-			wantEditMode:   false,
-			wantFocus:      FocusNone,
+			name:        "esc_in_normal_mode_clears_focus",
+			initialMode: modeNormal,
+			wantMode:    modeNormal,
+			wantFocus:   FocusNone,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := modelWithTableFocusAndData()
-			m.inlineEditMode = tt.inlineEditMode
+			m.mode = tt.initialMode
 			got, _ := m.handleKeyPress(keyMsg("esc"))
 			next := got.(Model)
-			if next.inlineEditMode != tt.wantEditMode {
-				t.Errorf("inlineEditMode = %v, want %v", next.inlineEditMode, tt.wantEditMode)
+			if next.mode != tt.wantMode {
+				t.Errorf("mode = %v, want %v", next.mode, tt.wantMode)
 			}
 			if next.view.focus != tt.wantFocus {
 				t.Errorf("focus = %v, want %v", next.view.focus, tt.wantFocus)
@@ -189,13 +189,13 @@ func TestEditModeTypingNotIntercepted(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := modelWithTableFocusAndData()
-			m.inlineEditMode = true
+			m.mode = modeInsert
 			m.editbox.Focus()
 			before := m.editbox.Value()
 			got, _ := m.handleKeyPress(keyMsg(tt.key))
 			next := got.(Model)
-			if !next.inlineEditMode {
-				t.Error("inlineEditMode was unexpectedly cleared")
+			if next.mode != modeInsert {
+				t.Error("mode was unexpectedly cleared")
 			}
 			if next.editbox.Value() == before+"copy" {
 				t.Errorf("key %q was intercepted by copy handler", tt.key)
@@ -233,11 +233,11 @@ func TestEditModeBlocksNavigationKeys(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := modelWithTableFocusAndData()
-			m.inlineEditMode = true
+			m.mode = modeInsert
 			got, cmd := m.handleKeyPress(keyMsg(tt.key))
 			next := got.(Model)
-			if !next.inlineEditMode {
-				t.Error("inlineEditMode was cleared unexpectedly")
+			if next.mode != modeInsert {
+				t.Error("mode was unexpectedly cleared")
 			}
 			if next.view.focus != FocusTable {
 				t.Errorf("focus changed to %v, want FocusTable", next.view.focus)
@@ -252,26 +252,26 @@ func TestEditModeBlocksNavigationKeys(t *testing.T) {
 func TestHelpBindingsInEditMode(t *testing.T) {
 	tests := []struct {
 		name             string
-		inlineEditMode   bool
+		initialMode      mode
 		wantGlobalsInBar bool
 		wantPaneKeys     []string
 	}{
 		{
 			name:             "edit_mode_shows_only_editbox_bindings",
-			inlineEditMode:   true,
+			initialMode:      modeInsert,
 			wantGlobalsInBar: false,
 			wantPaneKeys:     []string{"enter", "esc"},
 		},
 		{
 			name:             "normal_mode_includes_global_bindings",
-			inlineEditMode:   false,
+			initialMode:      modeNormal,
 			wantGlobalsInBar: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := modelWithTableFocusAndData()
-			m.inlineEditMode = tt.inlineEditMode
+			m.mode = tt.initialMode
 			bindings := m.statusBindings()
 			hasGlobal := false
 			for _, b := range bindings {
@@ -341,94 +341,94 @@ func TestOpenEditor(t *testing.T) {
 
 func TestHandleDeleteKey(t *testing.T) {
 	tests := []struct {
-		name              string
-		setup             func(*Model)
-		key               string
-		prevKey           string
-		wantHandled       bool
-		wantCmd           bool
-		wantPendingDelete bool
-		wantLastKey       string
+		name        string
+		setup       func(*Model)
+		key         string
+		prevKey     string
+		wantHandled bool
+		wantCmd     bool
+		wantMode    mode
+		wantLastKey string
 	}{
 		{
 			name: "requires_table_focus",
 			setup: func(m *Model) {
 				m.view.focus = FocusSidebar
 			},
-			key:               "d",
-			prevKey:           "d",
-			wantHandled:       false,
-			wantCmd:           false,
-			wantPendingDelete: false,
+			key:         "d",
+			prevKey:     "d",
+			wantHandled: false,
+			wantCmd:     false,
+			wantMode:    modeNormal,
 		},
 		{
-			name:              "requires_d_key",
-			key:               "x",
-			prevKey:           "d",
-			wantHandled:       false,
-			wantCmd:           false,
-			wantPendingDelete: false,
+			name:        "requires_d_key",
+			key:         "x",
+			prevKey:     "d",
+			wantHandled: false,
+			wantCmd:     false,
+			wantMode:    modeNormal,
 		},
 		{
 			name: "requires_records_tab",
 			setup: func(m *Model) {
 				m.tabs.SetActive(1) // Columns
 			},
-			key:               "d",
-			prevKey:           "d",
-			wantHandled:       false,
-			wantCmd:           false,
-			wantPendingDelete: false,
+			key:         "d",
+			prevKey:     "d",
+			wantHandled: false,
+			wantCmd:     false,
+			wantMode:    modeNormal,
 		},
 		{
 			name: "viewing_query_result_blocks_delete",
 			setup: func(m *Model) {
 				m.viewingQueryResult = true
 			},
-			key:               "d",
-			prevKey:           "d",
-			wantHandled:       true,
-			wantCmd:           true,
-			wantPendingDelete: false,
+			key:         "d",
+			prevKey:     "d",
+			wantHandled: true,
+			wantCmd:     true,
+			wantMode:    modeNormal,
 		},
 		{
 			name: "read_only_blocks_delete",
 			setup: func(m *Model) {
 				m.readOnly = true
 			},
-			key:               "d",
-			prevKey:           "d",
-			wantHandled:       true,
-			wantCmd:           true,
-			wantPendingDelete: false,
+			key:         "d",
+			prevKey:     "d",
+			wantHandled: true,
+			wantCmd:     true,
+			wantMode:    modeNormal,
 		},
 		{
 			name: "requires_active_row",
 			setup: func(m *Model) {
 				m.table.SetRows(nil)
 			},
-			key:               "d",
-			prevKey:           "d",
-			wantHandled:       false,
-			wantCmd:           false,
-			wantPendingDelete: false,
+			key:         "d",
+			prevKey:     "d",
+			wantHandled: false,
+			wantCmd:     false,
+			wantMode:    modeNormal,
 		},
 		{
-			name:              "first_d_stores_last_key",
-			key:               "d",
-			prevKey:           "",
-			wantHandled:       true,
-			wantCmd:           false,
-			wantPendingDelete: false,
-			wantLastKey:       "d",
+			name:        "first_d_stores_last_key",
+			key:         "d",
+			prevKey:     "",
+			wantHandled: true,
+			wantCmd:     false,
+			wantMode:    modeNormal,
+			wantLastKey: "d",
 		},
 		{
-			name:              "dd_starts_delete_confirmation",
-			key:               "d",
-			prevKey:           "d",
-			wantHandled:       true,
-			wantCmd:           false,
-			wantPendingDelete: true,
+			name:        "dd_starts_delete_confirmation",
+			key:         "d",
+			prevKey:     "d",
+			wantHandled: true,
+			wantCmd:     false,
+			wantMode:    modeDelete,
 		},
 	}
 
@@ -450,8 +450,8 @@ func TestHandleDeleteKey(t *testing.T) {
 			if !tt.wantCmd && cmd != nil {
 				t.Errorf("expected nil cmd, got %v", cmd)
 			}
-			if next.pendingDeleteConfirm != tt.wantPendingDelete {
-				t.Errorf("pendingDeleteConfirm = %v, want %v", next.pendingDeleteConfirm, tt.wantPendingDelete)
+			if next.mode != tt.wantMode {
+				t.Errorf("mode = %v, want %v", next.mode, tt.wantMode)
 			}
 			if next.lastKey != tt.wantLastKey {
 				t.Errorf("lastKey = %q, want %q", next.lastKey, tt.wantLastKey)
@@ -467,7 +467,7 @@ func TestConfirmDelete(t *testing.T) {
 		key               string
 		wantHandled       bool
 		wantCmd           bool
-		wantPendingDelete bool
+		wantMode          mode
 		wantPendingReload bool
 		wantQueryContains []string
 	}{
@@ -476,53 +476,53 @@ func TestConfirmDelete(t *testing.T) {
 			key:               "y",
 			wantHandled:       false,
 			wantCmd:           false,
-			wantPendingDelete: false,
+			wantMode:          modeNormal,
 			wantPendingReload: false,
 		},
 		{
 			name: "requires_y_key",
 			setup: func(m *Model) {
-				m.pendingDeleteConfirm = true
+				m.mode = modeDelete
 			},
 			key:               "n",
 			wantHandled:       false,
 			wantCmd:           false,
-			wantPendingDelete: true,
+			wantMode:          modeDelete,
 			wantPendingReload: false,
 		},
 		{
 			name: "missing_row_is_handled_without_query",
 			setup: func(m *Model) {
-				m.pendingDeleteConfirm = true
+				m.mode = modeDelete
 				m.table.SetRows(nil)
 			},
 			key:               "y",
 			wantHandled:       true,
 			wantCmd:           false,
-			wantPendingDelete: false,
+			wantMode:          modeNormal,
 			wantPendingReload: false,
 		},
 		{
 			name: "missing_database_or_table_is_handled_without_query",
 			setup: func(m *Model) {
-				m.pendingDeleteConfirm = true
+				m.mode = modeDelete
 				m.sidebar.SetDatabases(nil)
 			},
 			key:               "y",
 			wantHandled:       true,
 			wantCmd:           false,
-			wantPendingDelete: false,
+			wantMode:          modeNormal,
 			wantPendingReload: false,
 		},
 		{
 			name: "enqueues_delete_query_run",
 			setup: func(m *Model) {
-				m.pendingDeleteConfirm = true
+				m.mode = modeDelete
 			},
 			key:               "y",
 			wantHandled:       true,
 			wantCmd:           true,
-			wantPendingDelete: false,
+			wantMode:          modeNormal,
 			wantPendingReload: true,
 			wantQueryContains: []string{"DELETE FROM \"users\"", "\"name\" = 'Alice'"},
 		},
@@ -546,8 +546,8 @@ func TestConfirmDelete(t *testing.T) {
 			if !tt.wantCmd && cmd != nil {
 				t.Errorf("expected nil cmd, got %v", cmd)
 			}
-			if next.pendingDeleteConfirm != tt.wantPendingDelete {
-				t.Errorf("pendingDeleteConfirm = %v, want %v", next.pendingDeleteConfirm, tt.wantPendingDelete)
+			if next.mode != tt.wantMode {
+				t.Errorf("mode = %v, want %v", next.mode, tt.wantMode)
 			}
 			if next.pendingTableReload != tt.wantPendingReload {
 				t.Errorf("pendingTableReload = %v, want %v", next.pendingTableReload, tt.wantPendingReload)
@@ -570,46 +570,46 @@ func TestConfirmDelete(t *testing.T) {
 
 func TestCancelDelete(t *testing.T) {
 	tests := []struct {
-		name              string
-		pendingDelete     bool
-		key               string
-		wantHandled       bool
-		wantPendingDelete bool
+		name        string
+		initialMode mode
+		wantMode    mode
+		key         string
+		wantHandled bool
 	}{
 		{
-			name:              "requires_pending_confirmation",
-			pendingDelete:     false,
-			key:               "n",
-			wantHandled:       false,
-			wantPendingDelete: false,
+			name:        "requires_pending_confirmation",
+			initialMode: modeNormal,
+			wantMode:    modeNormal,
+			key:         "n",
+			wantHandled: false,
 		},
 		{
-			name:              "ignores_other_keys",
-			pendingDelete:     true,
-			key:               "y",
-			wantHandled:       false,
-			wantPendingDelete: true,
+			name:        "ignores_other_keys",
+			initialMode: modeDelete,
+			wantMode:    modeDelete,
+			key:         "y",
+			wantHandled: false,
 		},
 		{
-			name:              "n_cancels_pending_delete",
-			pendingDelete:     true,
-			key:               "n",
-			wantHandled:       true,
-			wantPendingDelete: false,
+			name:        "n_cancels_pending_delete",
+			initialMode: modeDelete,
+			wantMode:    modeNormal,
+			key:         "n",
+			wantHandled: true,
 		},
 		{
-			name:              "esc_cancels_pending_delete",
-			pendingDelete:     true,
-			key:               "esc",
-			wantHandled:       true,
-			wantPendingDelete: false,
+			name:        "esc_cancels_pending_delete",
+			initialMode: modeDelete,
+			wantMode:    modeNormal,
+			key:         "esc",
+			wantHandled: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := modelWithTableFocusAndData()
-			m.pendingDeleteConfirm = tt.pendingDelete
+			m.mode = tt.initialMode
 
 			got, cmd, handled := m.cancelDelete(keyMsg(tt.key))
 			next := got.(Model)
@@ -619,8 +619,8 @@ func TestCancelDelete(t *testing.T) {
 			if cmd != nil {
 				t.Errorf("expected nil cmd, got %v", cmd)
 			}
-			if next.pendingDeleteConfirm != tt.wantPendingDelete {
-				t.Errorf("pendingDeleteConfirm = %v, want %v", next.pendingDeleteConfirm, tt.wantPendingDelete)
+			if next.mode != tt.wantMode {
+				t.Errorf("mode = %v, want %v", next.mode, tt.wantMode)
 			}
 		})
 	}
@@ -628,33 +628,33 @@ func TestCancelDelete(t *testing.T) {
 
 func TestDelegatePaste_InlineEditMode(t *testing.T) {
 	tests := []struct {
-		name           string
-		inlineEditMode bool
-		initialValue   string
-		pasteContent   string
-		wantValue      string
+		name         string
+		wantMode     mode
+		initialValue string
+		pasteContent string
+		wantValue    string
 	}{
 		{
-			name:           "paste_appended_when_in_inline_edit_mode",
-			inlineEditMode: true,
-			initialValue:   "hello",
-			pasteContent:   " world",
-			wantValue:      "hello world",
+			name:         "paste_appended_when_in_inline_edit_mode",
+			wantMode:     modeInsert,
+			initialValue: "hello",
+			pasteContent: " world",
+			wantValue:    "hello world",
 		},
 		{
-			name:           "paste_ignored_when_not_in_inline_edit_mode",
-			inlineEditMode: false,
-			initialValue:   "hello",
-			pasteContent:   " world",
-			wantValue:      "hello",
+			name:         "paste_ignored_when_not_in_inline_edit_mode",
+			wantMode:     modeNormal,
+			initialValue: "hello",
+			pasteContent: " world",
+			wantValue:    "hello",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := New()
-			m.inlineEditMode = tt.inlineEditMode
+			m.mode = tt.wantMode
 			m.editbox.SetValue(tt.initialValue)
-			if tt.inlineEditMode {
+			if tt.wantMode == modeInsert {
 				m.editbox.Focus()
 			}
 
@@ -690,7 +690,7 @@ func TestOnCellEditorDone(t *testing.T) {
 		{
 			name: "shows_error_status_on_editor_error",
 			setup: func(m *Model) {
-				m.inlineEditMode = false
+				m.mode = modeNormal
 			},
 			wantCmd:           true, // TTL status cmd
 			wantPendingReload: false,

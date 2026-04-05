@@ -1,6 +1,11 @@
 package model
 
-import "github.com/jxdones/stoat/internal/database"
+import (
+	"image/color"
+
+	"github.com/jxdones/stoat/internal/database"
+	"github.com/jxdones/stoat/internal/ui/theme"
+)
 
 // FocusedPanel indicates which panel receives key input.
 type FocusedPanel int
@@ -20,6 +25,17 @@ const (
 	modalNone activeModal = iota
 	modalConnectionPicker
 	modalCellDetail
+)
+
+// mode tracks the current mode of the application.
+type mode int
+
+const (
+	modeNormal mode = iota
+	modeInsert
+	modeVisual
+	modeDelete
+	modeCommand
 )
 
 // screenState tracks the size and focus of the main screen.
@@ -52,3 +68,19 @@ const (
 	// history after the response arrives.
 	pageNavPrev
 )
+
+// modeStyle returns the mode label and color.
+func (m Model) modeStyle() (label string, color color.Color) {
+	switch m.mode {
+	case modeInsert:
+		return "INSERT", theme.Current.ModeInsert
+	case modeVisual:
+		return "VISUAL", theme.Current.ModeVisual
+	case modeDelete:
+		return "DELETE", theme.Current.ModeDelete
+	case modeCommand:
+		return "COMMAND", theme.Current.ModeCommand
+	default:
+		return "NORMAL", theme.Current.ModeNormal
+	}
+}

@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **`stoat version` subcommand.** `stoat version` now prints the version, complementing the existing `--version` / `-v` flag.
+- **Mode indicator in status bar.** The status bar now shows the current input mode (`NORMAL`, `INSERT`, `DELETE`) at all times, styled with per-theme colors. Lays the groundwork for visual mode selection.
 
 ### Fixed
 

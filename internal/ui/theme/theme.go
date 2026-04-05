@@ -41,6 +41,12 @@ type Theme struct {
 	SyntaxNumber   color.Color
 	SyntaxComment  color.Color
 	SyntaxOperator color.Color
+
+	ModeNormal  color.Color
+	ModeInsert  color.Color
+	ModeVisual  color.Color
+	ModeDelete  color.Color
+	ModeCommand color.Color
 }
 
 // Current is the process-wide active theme. Components read it for styling.
@@ -84,6 +90,11 @@ func DefaultTheme() Theme {
 		SyntaxNumber:      cc("#bd93f9", "183", "5"),
 		SyntaxComment:     cc("#6272a4", "60", "8"),
 		SyntaxOperator:    cc("#ff79c6", "212", "13"),
+		ModeNormal:        cc("#875fd7", "98", "5"),
+		ModeInsert:        cc("#87af5f", "107", "2"),
+		ModeVisual:        cc("#d7875f", "173", "3"),
+		ModeDelete:        cc("#af0000", "124", "1"),
+		ModeCommand:       cc("#5fd7d7", "80", "6"),
 	}
 }
 
@@ -115,6 +126,11 @@ func DraculaTheme() Theme {
 		SyntaxNumber:      cc("#bd93f9", "183", "5"),
 		SyntaxComment:     cc("#6272a4", "60", "8"),
 		SyntaxOperator:    cc("#ff79c6", "212", "13"),
+		ModeNormal:        cc("#875fff", "99", "5"),
+		ModeInsert:        cc("#50fa7b", "84", "2"),
+		ModeVisual:        cc("#ffaf5f", "215", "3"),
+		ModeDelete:        cc("#ff5f5f", "203", "1"),
+		ModeCommand:       cc("#87d7ff", "117", "14"),
 	}
 }
 
@@ -146,6 +162,11 @@ func SolarizedTheme() Theme {
 		SyntaxNumber:      cc("#d33682", "125", "5"),
 		SyntaxComment:     cc("#657b83", "66", "8"),
 		SyntaxOperator:    cc("#859900", "100", "2"),
+		ModeNormal:        cc("#00afaf", "37", "6"),
+		ModeInsert:        cc("#859900", "100", "2"),
+		ModeVisual:        cc("#d75f00", "166", "3"),
+		ModeDelete:        cc("#d70000", "160", "1"),
+		ModeCommand:       cc("#0087af", "31", "4"),
 	}
 }
 
@@ -177,6 +198,11 @@ func PrincessTheme() Theme {
 		SyntaxNumber:      cc("#FCA17D", "216", "3"),
 		SyntaxComment:     cc("#86BBD8", "110", "8"),
 		SyntaxOperator:    cc("#DA627D", "168", "5"),
+		ModeNormal:        cc("#9A348E", "127", "5"),
+		ModeInsert:        cc("#047E84", "30", "6"),
+		ModeVisual:        cc("#FCA17D", "216", "3"),
+		ModeDelete:        cc("#CC3802", "130", "1"),
+		ModeCommand:       cc("#33658A", "67", "4"),
 	}
 }
 
@@ -208,6 +234,11 @@ func OneShellTheme() Theme {
 		SyntaxNumber:      cc("#ff70a6", "205", "13"),
 		SyntaxComment:     cc("#ffafd2", "218", "8"),
 		SyntaxOperator:    cc("#00c7fc", "45", "14"),
+		ModeNormal:        cc("#00c7fc", "45", "14"),
+		ModeInsert:        cc("#a9ffb4", "157", "10"),
+		ModeVisual:        cc("#ffbebc", "217", "3"),
+		ModeDelete:        cc("#ef5350", "203", "1"),
+		ModeCommand:       cc("#bc93ff", "139", "13"),
 	}
 }
 
@@ -239,6 +270,11 @@ func BlueishTheme() Theme {
 		SyntaxNumber:      cc("#FFCD58", "221", "3"),
 		SyntaxComment:     cc("#a2c4e0", "153", "8"),
 		SyntaxOperator:    cc("#26C6DA", "44", "14"),
+		ModeNormal:        cc("#26C6DA", "44", "14"),
+		ModeInsert:        cc("#a9ffb4", "157", "10"),
+		ModeVisual:        cc("#FFCD58", "221", "3"),
+		ModeDelete:        cc("#f1184c", "197", "1"),
+		ModeCommand:       cc("#14c2dd", "44", "14"),
 	}
 }
 
@@ -270,6 +306,11 @@ func RosePineTheme() Theme {
 		SyntaxNumber:      cc("#ebbcba", "181", "1"),
 		SyntaxComment:     cc("#6e6a86", "60", "8"),
 		SyntaxOperator:    cc("#31748f", "67", "4"),
+		ModeNormal:        cc("#c4a7e7", "183", "5"),
+		ModeInsert:        cc("#9ccfd8", "116", "6"),
+		ModeVisual:        cc("#f6c177", "222", "3"),
+		ModeDelete:        cc("#eb6f92", "168", "1"),
+		ModeCommand:       cc("#31748f", "67", "4"),
 	}
 }
 
@@ -301,6 +342,11 @@ func EverforestTheme() Theme {
 		SyntaxNumber:      cc("#dbbc7f", "214", "3"),
 		SyntaxComment:     cc("#7a8478", "243", "8"),
 		SyntaxOperator:    cc("#7fbbb3", "109", "6"),
+		ModeNormal:        cc("#a7c080", "142", "2"),
+		ModeInsert:        cc("#83c092", "108", "6"),
+		ModeVisual:        cc("#dbbc7f", "214", "3"),
+		ModeDelete:        cc("#e67e80", "167", "1"),
+		ModeCommand:       cc("#7fbbb3", "109", "6"),
 	}
 }
 
@@ -332,6 +378,11 @@ func CatppuccinTheme() Theme {
 		SyntaxNumber:      cc("#fab387", "216", "3"),
 		SyntaxComment:     cc("#6c7086", "60", "8"),
 		SyntaxOperator:    cc("#89dceb", "116", "6"),
+		ModeNormal:        cc("#cba6f7", "183", "5"),
+		ModeInsert:        cc("#a6e3a1", "150", "2"),
+		ModeVisual:        cc("#fab387", "216", "3"),
+		ModeDelete:        cc("#f38ba8", "211", "1"),
+		ModeCommand:       cc("#89dceb", "116", "6"),
 	}
 }
 
@@ -363,6 +414,11 @@ func GruvboxTheme() Theme {
 		SyntaxNumber:      cc("#d3869b", "175", "5"),
 		SyntaxComment:     cc("#928374", "102", "8"),
 		SyntaxOperator:    cc("#83a598", "109", "6"),
+		ModeNormal:        cc("#83a598", "109", "6"),
+		ModeInsert:        cc("#b8bb26", "142", "2"),
+		ModeVisual:        cc("#fe8019", "173", "3"),
+		ModeDelete:        cc("#fb4934", "203", "1"),
+		ModeCommand:       cc("#8ec07c", "108", "2"),
 	}
 }
 
@@ -394,6 +450,11 @@ func OneDarkTheme() Theme {
 		SyntaxNumber:      cc("#d19a66", "173", "3"),
 		SyntaxComment:     cc("#5c6370", "103", "8"),
 		SyntaxOperator:    cc("#56b6c2", "73", "6"),
+		ModeNormal:        cc("#61afef", "75", "4"),
+		ModeInsert:        cc("#98c379", "107", "2"),
+		ModeVisual:        cc("#e5c07b", "222", "3"),
+		ModeDelete:        cc("#e06c75", "168", "1"),
+		ModeCommand:       cc("#56b6c2", "73", "6"),
 	}
 }
 
