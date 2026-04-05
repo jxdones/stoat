@@ -10,7 +10,7 @@ PREFIX ?= /usr/local
 LDFLAGS := -ldflags "-s -w -X github.com/jxdones/stoat/cmd.version=$(VERSION)"
 
 build:
-	$(GO) build $(LDFLAGS) -o bin/$(TARGET) main.go
+	$(GO) build $(LDFLAGS) -o bin/$(TARGET) .
 
 test:
 	$(GO) test ./...
@@ -36,7 +36,7 @@ release: clean
 
 # Install to $GOBIN. Ensure $GOBIN is in your PATH.
 install:
-	$(GO) install $(LDFLAGS) ./main.go
+	$(GO) install $(LDFLAGS) .
 
 install-prefix: build
 	install -d $(DESTDIR)$(PREFIX)/bin
