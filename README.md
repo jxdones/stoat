@@ -88,7 +88,7 @@ brew install --cask stoat
 **Go install:**
 
 ```bash
-go install github.com/jxdones/stoat/cmd/stoat@latest
+go install github.com/jxdones/stoat@latest
 ```
 
 **Docker:**

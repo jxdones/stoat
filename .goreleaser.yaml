@@ -4,13 +4,13 @@ project_name: stoat
 
 builds:
   - binary: stoat
-    main: ./cmd/stoat
+    main: .
     env:
       - CGO_ENABLED=1
       - ZIG_GLOBAL_CACHE_DIR=/tmp/zig-global-cache
       - ZIG_LOCAL_CACHE_DIR=/tmp/zig-local-cache
     ldflags:
-      - -s -w -X main.version={{.Version}}
+      - -s -w -X github.com/jxdones/stoat/cmd.version={{.Version}}
     goos:
       - darwin
       - linux

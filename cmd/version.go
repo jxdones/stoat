@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// version is set at build time via -ldflags "-X main.version=vX.Y.Z".
+// version is set at build time via -ldflags "-X github.com/jxdones/stoat/cmd.version=vX.Y.Z".
 var version = "dev"
 
 var versionCmd = &cobra.Command{

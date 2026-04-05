@@ -8,7 +8,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN go build -ldflags="-s -w" -o stoat ./cmd/stoat/main.go
+RUN go build -ldflags="-s -w" -o stoat .
 
 FROM alpine:3.20
 
