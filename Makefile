@@ -24,6 +24,9 @@ fmt:
 lint:
 	$(LINTER) run ./...
 
+vuln-check:
+	go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
 clean:
 	rm -rf bin dist
 

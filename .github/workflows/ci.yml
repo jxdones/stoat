@@ -13,12 +13,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: 1.26.1
+          go-version: 1.26.2
       - uses: golangci/golangci-lint-action@v7
         with:
           version: v2.10.1
       - name: Run govulncheck
-        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+        run: make vuln-check
       - name: Run Tests
         run: make test
       - name: Run Build
