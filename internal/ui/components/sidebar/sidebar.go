@@ -1,7 +1,6 @@
 package sidebar
 
 import (
-	"strconv"
 	"strings"
 
 	"charm.land/bubbles/v2/key"
@@ -165,7 +164,7 @@ func (m Model) Update(msg tea.Msg) (Model, Event) {
 	beforeDB := m.SelectedDB()
 	beforeTable := m.SelectedTable()
 
-	if isDigitKey(k) {
+	if keys.IsDigitKey(k) {
 		if len(m.countBuffer) < maxCountDigits {
 			m.countBuffer += k.String()
 		}
@@ -174,11 +173,11 @@ func (m Model) Update(msg tea.Msg) (Model, Event) {
 
 	switch {
 	case key.Matches(k, keys.Default.MoveUp):
-		n := parseBufferCount(m.countBuffer)
+		n := keys.ParseBufferCount(m.countBuffer)
 		m.countBuffer = ""
 		m.Move(-n)
 	case key.Matches(k, keys.Default.MoveDown):
-		n := parseBufferCount(m.countBuffer)
+		n := keys.ParseBufferCount(m.countBuffer)
 		m.countBuffer = ""
 		m.Move(n)
 	case key.Matches(k, keys.Default.GotoTop):
@@ -694,26 +693,4 @@ func (m *Model) SelectDatabase(name string) {
 // SetDatabaseLabel sets the label for the database.
 func (m *Model) SetDatabaseLabel(label string) {
 	m.databaseLabel = label
-}
-
-// isDigitKey reports whether the key is a single digit 0-9 (for count prefix).
-func isDigitKey(keyMsg tea.KeyPressMsg) bool {
-	s := keyMsg.String()
-	if len(s) != 1 {
-		return false
-	}
-	c := s[0]
-	return c >= '0' && c <= '9'
-}
-
-// parseBufferCount returns the count from the buffer (default 1); used for vim-style N motion.
-func parseBufferCount(buffer string) int {
-	if buffer == "" {
-		return 1
-	}
-	count, err := strconv.Atoi(buffer)
-	if err != nil || count < 1 {
-		return 1
-	}
-	return count
 }

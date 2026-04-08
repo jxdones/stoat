@@ -1,6 +1,11 @@
 package keys
 
-import "charm.land/bubbles/v2/key"
+import (
+	"strconv"
+
+	"charm.land/bubbles/v2/key"
+	tea "charm.land/bubbletea/v2"
+)
 
 // KeyMap holds key bindings for general navigation (vi-style and arrows).
 type KeyMap struct {
@@ -35,3 +40,25 @@ func DefaultKeyMap() KeyMap {
 
 // Default is the shared default navigation keymap used by components.
 var Default = DefaultKeyMap()
+
+// IsDigitKey reports whether the key is a single digit 0-9 (for count prefix).
+func IsDigitKey(keyMsg tea.KeyPressMsg) bool {
+	s := keyMsg.String()
+	if len(s) != 1 {
+		return false
+	}
+	c := s[0]
+	return c >= '0' && c <= '9'
+}
+
+// ParseBufferCount returns the count from the buffer (default 1); used for vim-style N motion.
+func ParseBufferCount(buffer string) int {
+	if buffer == "" {
+		return 1
+	}
+	count, err := strconv.Atoi(buffer)
+	if err != nil || count < 1 {
+		return 1
+	}
+	return count
+}
