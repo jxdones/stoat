@@ -31,13 +31,7 @@ func (m Model) handleEditKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
 	if m.tabs.ActiveTab() != "Records" {
 		return m, nil, false
 	}
-	if m.viewingQueryResult {
-		cmd := m.statusbar.SetStatusWithTTL(" Query results are read-only", statusbar.Warning, 2*time.Second)
-		return m, cmd, true
-	}
-
-	if m.readOnly {
-		cmd := m.statusbar.SetStatusWithTTL(" Read-only mode: write queries are not allowed", statusbar.Warning, 3*time.Second)
+	if cmd, blocked := m.writeGuard(); blocked {
 		return m, cmd, true
 	}
 
@@ -65,12 +59,7 @@ func (m Model) handleDeleteKey(msg tea.KeyPressMsg, prevKey string) (tea.Model, 
 	if m.tabs.ActiveTab() != "Records" {
 		return m, nil, false
 	}
-	if m.viewingQueryResult {
-		cmd := m.statusbar.SetStatusWithTTL(" Query results are read-only", statusbar.Warning, 2*time.Second)
-		return m, cmd, true
-	}
-	if m.readOnly {
-		cmd := m.statusbar.SetStatusWithTTL(" Read-only mode: write queries are not allowed", statusbar.Warning, 3*time.Second)
+	if cmd, blocked := m.writeGuard(); blocked {
 		return m, cmd, true
 	}
 	if prevKey != "d" {
@@ -94,8 +83,7 @@ func (m Model) handleCellEditorKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, boo
 	if m.tabs.ActiveTab() != "Records" {
 		return m, nil, false
 	}
-	if m.viewingQueryResult {
-		cmd := m.statusbar.SetStatusWithTTL(" Query results are read-only", statusbar.Warning, 2*time.Second)
+	if cmd, blocked := m.writeGuard(); blocked {
 		return m, cmd, true
 	}
 
@@ -206,12 +194,7 @@ func (m Model) onCellEditorDone(msg EditorCellMsg) (tea.Model, tea.Cmd) {
 	if m.tabs.ActiveTab() != "Records" {
 		return m, nil
 	}
-	if m.readOnly {
-		cmd := m.statusbar.SetStatusWithTTL(" Read-only mode: write queries are not allowed", statusbar.Warning, 3*time.Second)
-		return m, cmd
-	}
-	if m.viewingQueryResult {
-		cmd := m.statusbar.SetStatusWithTTL(" Query results are read-only", statusbar.Warning, 2*time.Second)
+	if cmd, blocked := m.writeGuard(); blocked {
 		return m, cmd
 	}
 
@@ -302,6 +285,18 @@ func OpenEditorWithCellValueCmd(value, typeName string) tea.Cmd {
 		}
 		return EditorCellMsg{Value: contentStr, Err: nil}
 	})
+}
+
+// writeGuard returns a status-bar command and true if the operation should be blocked
+// because the current context is read-only (query result or read-only connection).
+func (m Model) writeGuard() (tea.Cmd, bool) {
+	if m.viewingQueryResult {
+		return m.statusbar.SetStatusWithTTL(" Query results are read-only", statusbar.Warning, 2*time.Second), true
+	}
+	if m.readOnly {
+		return m.statusbar.SetStatusWithTTL(" Read-only mode: write queries are not allowed", statusbar.Warning, 3*time.Second), true
+	}
+	return nil, false
 }
 
 // schemaForWrites returns the SQL schema to use when generating write queries.

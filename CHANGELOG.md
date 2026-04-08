@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.6] - 2026-04-08
+
+### Security
+
+- **Go 1.26.2.** Updated Go toolchain to address vulnerabilities in `crypto/x509` and `crypto/tls` (Go 1.26.1).
+
 ## [0.14.5] - 2026-04-05
 
 ### Added

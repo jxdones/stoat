@@ -1,5 +1,5 @@
 TARGET := stoat
-VERSION := 0.14.5
+VERSION := 0.14.6
 GO := go
 GOFMT := gofmt
 LINTER := golangci-lint
