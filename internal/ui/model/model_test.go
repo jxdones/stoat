@@ -52,6 +52,8 @@ func keyMsg(s string) tea.KeyPressMsg {
 		return tea.KeyPressMsg(tea.Key{Code: 'c', Mod: tea.ModCtrl})
 	case "ctrl+s":
 		return tea.KeyPressMsg(tea.Key{Code: 's', Mod: tea.ModCtrl})
+	case "ctrl+r":
+		return tea.KeyPressMsg(tea.Key{Code: 'r', Mod: tea.ModCtrl})
 	case "enter":
 		return tea.KeyPressMsg(tea.Key{Code: tea.KeyEnter})
 	case "?":
@@ -751,7 +753,7 @@ func TestResetPaging(t *testing.T) {
 	}
 }
 
-func TestCtrlSInQuerybox(t *testing.T) {
+func TestCtrlRInQuerybox(t *testing.T) {
 	tests := []struct {
 		name               string
 		query              string
@@ -833,7 +835,7 @@ func TestCtrlSInQuerybox(t *testing.T) {
 				m.SetDataSource(tt.source)
 			}
 
-			next, cmd := m.Update(keyMsg("ctrl+s"))
+			next, cmd := m.Update(keyMsg("ctrl+r"))
 			if tt.wantCmd && cmd == nil {
 				t.Fatal("expected non-nil command")
 			}

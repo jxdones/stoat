@@ -318,7 +318,7 @@ func TestKeyMap(t *testing.T) {
 	}{
 		{
 			name:     "run_query_in_short_help",
-			wantKeys: []string{"ctrl+s"},
+			wantKeys: []string{"ctrl+r"},
 			wantHelp: "run query",
 			short:    true,
 		},
