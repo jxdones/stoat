@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/jxdones/stoat/internal/config"
@@ -32,6 +33,20 @@ var RootCmd = &cobra.Command{
 			return err
 		}
 
+		dbDSNEnv, err := cmd.Flags().GetString("dsn-env")
+		if err != nil {
+			return err
+		}
+
+		if dbDSN != "" && dbDSNEnv != "" {
+			fmt.Fprintf(os.Stderr, "Only one dsn option should be set.\n")
+			os.Exit(1)
+		}
+
+		if dbDSNEnv != "" {
+			dbDSN = os.Getenv(dbDSNEnv)
+		}
+
 		debug, err := cmd.Flags().GetBool("debug")
 		if err != nil {
 			return err
@@ -52,9 +67,22 @@ var RootCmd = &cobra.Command{
 				ReadOnly: readOnly,
 			})
 		} else if dbDSN != "" {
+			dbms := checkDBMS(dbDSN)
+			name := ""
+
+			switch dbms {
+			case database.DBMSPostgres:
+				name = "postgres"
+			case database.DBMSMySQL:
+				name = "mysql"
+			case "":
+				fmt.Fprintf(os.Stderr, "Invalid DBMS.\n")
+				os.Exit(1)
+			}
+
 			m.SetPendingConfig(database.Config{
-				Name:     "postgres",
-				DBMS:     database.DBMSPostgres,
+				Name:     name,
+				DBMS:     dbms,
 				Values:   map[string]string{"dsn": dbDSN},
 				ReadOnly: readOnly,
 			})
@@ -104,8 +132,21 @@ var RootCmd = &cobra.Command{
 
 func init() {
 	RootCmd.Flags().StringP("db", "d", "", "path to SQLite database file (e.g. ./mydb.sqlite)")
-	RootCmd.Flags().StringP("dsn", "s", "", "PostgreSQL connection string (e.g. postgres://user:password@host:port/database)")
+	RootCmd.Flags().StringP("dsn", "s", "", "PostgreSQL or MySQL/MariaDB connection string (e.g. postgres://user:password@host:port/database)")
+	RootCmd.Flags().StringP("dsn-env", "", "", "name of the environment variable containing the DSN (e.g. MY_SECRET_DSN).\nIt keeps credentials out of shell history\n")
 	RootCmd.Flags().BoolP("debug", "D", false, "write per-call timings to ~/.stoat/debug.log")
 	RootCmd.Flags().BoolP("read-only", "r", false, "open connection in read-only mode")
 	RootCmd.Flags().BoolP("version", "v", false, "Print the version number of stoat")
+}
+
+// checkDBMS returns the DBMS from the DSN string
+func checkDBMS(dsn string) database.DBMS {
+	if strings.HasPrefix(dsn, "postgres://") || strings.HasPrefix(dsn, "postgresql://") {
+		return database.DBMSPostgres
+	}
+
+	if strings.HasPrefix(dsn, "mysql://") || strings.Contains(dsn, "@tcp(") || strings.Contains(dsn, "@unix(") {
+		return database.DBMSMySQL
+	}
+	return ""
 }

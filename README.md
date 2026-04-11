@@ -40,6 +40,10 @@ stoat --db path/to/database.sqlite
 # PostgreSQL (one-off, bypasses picker)
 stoat --dsn "postgres://user:password@host:5432/dbname?sslmode=disable"
 
+# Pass credentials via environment variable (keeps secrets out of shell history)
+export MY_DSN="postgres://user:password@host:5432/dbname?sslmode=disable"
+stoat --dsn-env MY_DSN
+
 # Print version
 stoat --version
 
@@ -50,7 +54,7 @@ stoat --db path/to/database.sqlite --debug
 stoat --read-only
 ```
 
-Run `stoat` with no arguments to open the connection picker and choose from your saved connections. Pass `--db` or `--dsn` to connect directly, bypassing the picker.
+Run `stoat` with no arguments to open the connection picker and choose from your saved connections. Pass `--db` or `--dsn` to connect directly, bypassing the picker. Use `--dsn-env` instead of `--dsn` to read the connection string from an environment variable. Credentials won't appear in shell history or the process argument list.
 
 ## Features
 
@@ -75,7 +79,7 @@ curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh
 To install a specific version:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh -s -- v0.14.6
+curl -fsSL https://raw.githubusercontent.com/jxdones/stoat/main/install.sh | sh -s -- v0.14.7
 ```
 
 **Homebrew** (macOS):

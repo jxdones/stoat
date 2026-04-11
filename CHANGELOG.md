@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.7] - 2026-04-11
+
+### Added
+
+- **`--dsn-env` flag.** Pass the name of an environment variable containing the DSN instead of inlining credentials. Useful for CI/CD pipelines and shell scripts where credentials should not appear in command history or the process argument list (e.g. `stoat --dsn-env MY_SECRET_DSN`).
+
 ### Changed
 
 - **Commands for reloading and runing query changed.** `ctrl+r` now runs the query on the querybox and `shift+R` reloads the data rows on the table.
