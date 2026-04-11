@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Commands for reloading and runing query changed.** `ctrl+r` now runs the query on the querybox and `shift+R` reloads the data rows on the table.
+
 ## [0.14.6] - 2026-04-08
 
 ### Security

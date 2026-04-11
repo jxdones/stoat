@@ -151,7 +151,7 @@ The options bar at the bottom shows shortcuts for the currently focused pane. Wh
 | `Tab` / `Shift+Tab` | Cycle focus forward / backward |
 | `/` | Focus filter box |
 | `c` | Show connection picker (only when focus is clear) |
-| `Ctrl+R` | Reload current table (first page) |
+| `R` | Reload current table (first page) |
 | `?` | Show help |
 
 ### Sidebar
@@ -200,7 +200,7 @@ The options bar at the bottom shows shortcuts for the currently focused pane. Wh
 
 | Key | Action |
 | --- | --- |
-| `Ctrl+S` | Run query |
+| `Ctrl+R` | Run query |
 | `Ctrl+E` | Open `$EDITOR` with a SQL template; save and close to run |
 | `Ctrl+N` | Expand saved query (type `@Name` then Ctrl+N to insert) |
 | `Ctrl+L` | Clear query |

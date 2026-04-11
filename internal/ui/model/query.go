@@ -33,9 +33,9 @@ type EditorQueryMsg struct {
 	Err   error
 }
 
-// handleQueryKey handles ctrl+s when the querybox is focused: submits the query for execution.
+// handleQueryKey handles ctrl+r when the querybox is focused: submits the query for execution.
 func (m Model) handleQueryKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
-	if msg.String() != "ctrl+s" || m.view.focus != FocusQuerybox {
+	if msg.String() != "ctrl+r" || m.view.focus != FocusQuerybox {
 		return m, nil, false
 	}
 	if !m.HasConnection() {

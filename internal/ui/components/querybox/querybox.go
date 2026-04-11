@@ -141,8 +141,8 @@ type KeyMap struct{}
 func (k KeyMap) ShortHelp() []key.Binding {
 	return []key.Binding{
 		key.NewBinding(
-			key.WithKeys("ctrl+s"),
-			key.WithHelp("ctrl+s", "run query"),
+			key.WithKeys("ctrl+r"),
+			key.WithHelp("ctrl+r", "run query"),
 		),
 		key.NewBinding(
 			key.WithKeys("ctrl+l"),
@@ -156,8 +156,8 @@ func (k KeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{
 			key.NewBinding(
-				key.WithKeys("ctrl+s"),
-				key.WithHelp("ctrl+s", "run query"),
+				key.WithKeys("ctrl+r"),
+				key.WithHelp("ctrl+r", "run query"),
 			),
 			key.NewBinding(
 				key.WithKeys("ctrl+n"),

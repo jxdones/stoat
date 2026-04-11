@@ -98,7 +98,7 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	case "ctrl+e":
 		return m.openEditor()
-	case "ctrl+r":
+	case "R":
 		return m.reload()
 	case "q":
 		if m.view.focus == FocusNone {
